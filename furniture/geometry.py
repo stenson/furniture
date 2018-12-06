@@ -5,6 +5,7 @@ try:
 except ImportError:
     db = None
 
+YOYO = "ma"
 
 MINYISMAXY = False
 
@@ -15,6 +16,26 @@ class Edge(Enum):
     MinX = 4
     CenterY = 5
     CenterX = 6
+
+def txt_to_edge(txt):
+    if isinstance(txt, Edge):
+        return txt
+    
+    txt = txt.lower()
+    if txt == "maxy":
+        return Edge.MaxY
+    elif txt == "maxx":
+        return Edge.MaxX
+    elif txt == "miny":
+        return Edge.MinY
+    elif txt == "minx":
+        return Edge.MinX
+    elif txt == "centery":
+        return Edge.CenterY
+    elif txt == "centerx":
+        return Edge.CenterX
+    else:
+        return None
 
 
 def centered_square(rect):
@@ -269,14 +290,6 @@ class Rect():
     def rect(self):
         return [self.x, self.y, self.w, self.h]
 
-    def polygon(self):
-        import shapely.geometry as sg
-        return sg.Polygon([
-                    self.point("SW").xy(),
-                    self.point("NW").xy(),
-                    self.point("NE").xy(),
-                    self.point("SE").xy()])
-
     def xy(self):
         return [self.x, self.y]
 
@@ -287,6 +300,7 @@ class Rect():
         return Rect(centered_square(self.rect()))
 
     def divide(self, amount, edge):
+        edge = txt_to_edge(edge)
         if edge == Edge.CenterX or edge == Edge.CenterY:
             a, b, c = divide(self.rect(), amount, edge)
             return Rect(a), Rect(b), Rect(c)
@@ -295,10 +309,11 @@ class Rect():
             return Rect(a), Rect(b)
 
     def subdivide(self, amount, edge):
+        edge = txt_to_edge(edge)
         return [Rect(x) for x in subdivide(self.rect(), amount, edge)]
 
     def subdivide_with_leadings(self, count, leadings, edge):
-        print(count, leadings, edge)
+        edge = txt_to_edge(edge)
         leadings = leadings + [0]
         full = self.w if edge == Edge.MinX or edge == Edge.MaxX else self.h
         unit = (full - sum(leadings)) / count
@@ -306,18 +321,24 @@ class Rect():
         return [Rect(x) for x in subdivide(self.rect(), amounts, edge)][::2]
 
     def scale(self, s, x_edge=Edge.CenterX, y_edge=Edge.CenterY):
+        x_edge = txt_to_edge(x_edge)
+        y_edge = txt_to_edge(y_edge)
         return Rect(scale(self.rect(), s, x_edge, y_edge))
 
     def take(self, amount, edge):
+        edge = txt_to_edge(edge)
         return Rect(take(self.rect(), amount, edge))
 
     def takeOpposite(self, amount, edge):
+        edge = txt_to_edge(edge)
         return self.divide(amount, edge)[1]
 
     def subtract(self, amount, edge):
+        edge = txt_to_edge(edge)
         return Rect(subtract(self.rect(), amount, edge))
 
     def expand(self, amount, edge):
+        edge = txt_to_edge(edge)
         return Rect(expand(self.rect(), amount, edge))
 
     def inset(self, dx, dy):
@@ -334,15 +355,18 @@ class Rect():
         return [item for sublist in xs for item in sublist]
 
     def pieces(self, amount, edge):
+        edge = txt_to_edge(edge)
         return [Rect(x) for x in pieces(self.rect(), amount, edge)]
 
     def edge(self, edge):
+        edge = txt_to_edge(edge)
         return edgepoints(self.rect(), edge)
 
     def center(self):
         return centerpoint(self.rect())
 
     def point(self, eh, ev=Edge.MinX):
+        ev = txt_to_edge(ev)
         if eh == "C":
             return self.point(Edge.CenterX, Edge.CenterY)
         elif eh == "W":

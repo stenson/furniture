@@ -1,2 +1,3 @@
 # furniture
-furniture for programmatic typesetting in drawBot
+
+Typesetting and layout utilities for drawing and animating in drawBot.

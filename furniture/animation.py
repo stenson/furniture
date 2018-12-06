@@ -56,32 +56,6 @@ class AnimationFrame():
             return None
 
 
-def draw_frame(fn, total_frames, i=0, curve=None, dimensions=(1024, 1024), doSave=False, saveTo=None, fps=30):
-    if i > total_frames:
-        return
-
-    if doSave:
-        print(f"drawing & saving: {i}")
-    else:
-        print(f"drawing: {i}")
-
-    if doSave:
-        db.newDrawing()
-
-    db.newPage(*dimensions)
-    
-    env = dict(total=total_frames,
-               saving=doSave,
-               doneness=i/total_frames,
-               time=i/fps,
-               x=round(total_frames * curve((i/total_frames))))
-    fn(i, Rect.page(), env)
-
-    if doSave:
-        db.saveImage(f"{saveTo}/{i}.png")
-        db.endDrawing()
-
-
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
