@@ -16,12 +16,6 @@ I really love slicing & dicing rectangles with the style of code that `furniture
 
 Doesn’t exist yet but it will I promise. Or at least I think it will at some point, who knows.
 
-## Viewing animation output
-
-Though the written frames can be `ffmpeg`'d into a video, I've found that possibly the best way to get a quick and easy preview of your rendered work is to grab a copy of Adobe Premiere (which I’m guessing almost all designers have access to, given their CC subscriptions), then start a project and **import** (⌘i) the first image in your rendered frames folder (i.e. `0000.png`) into your project, making sure to select "Image Sequence" from the cryptic "Options" option in the import dialog. Once you've imported this "image sequence," you can drag it to to the timeline area and it will create a sequence for you with all the correct settings.
-
-**Caveat!** It's easy to get the frame rate for the imported image sequence incorrect, since the default frame rate for all imported sequences is set in Premiere's `Preferences -> Media -> Indeterminate Media Timebase`. Since I'm often combining images and video shot at 23.976, I keep my "indeterminate media timebase" at 23.976, though if you're doing video-free animations, you can use a saner fps, like 24 or 30, or something slower for that funky feel.
-
 ## Features
 
 - `furniture.geometry` provides a simple `Rect` structure for slicing & dicing rectangles quickly and easily (loosely based on the use of `CGGeometry` in AppKit programming)
@@ -40,3 +34,9 @@ animation.storyboard(0, 1, 50)
 ```
 
 If you run that code in drawBot itself, you'll see the frames specified in `.storyboard`, i.e. frames 0, 1, and 50. If you run that code from the command line, i.e. `python example.py --start=0 --folder=frames`, this will render pngs of every one of your frames into a folder called `frames`.
+
+## Viewing animation output
+
+Though the written frames can be `ffmpeg`'d into a video, I've found that possibly the best way to get a quick and easy preview of your rendered work is to grab a copy of Adobe Premiere (which I’m guessing almost all designers have access to, given their CC subscriptions), then start a project and **import** (⌘i) the first image in your rendered frames folder (i.e. `0000.png`) into your project, making sure to select "Image Sequence" from the cryptic "Options" option in the import dialog. Once you've imported this "image sequence," you can drag it to to the timeline area and it will create a sequence for you with all the correct settings.
+
+**Caveat!** It's easy to get the frame rate for the imported image sequence incorrect, since the default frame rate for all imported sequences is set in Premiere's `Preferences -> Media -> Indeterminate Media Timebase`. Since I'm often combining images and video shot at 23.976, I keep my "indeterminate media timebase" at 23.976, though if you're doing video-free animations, you can use a saner fps, like 24 or 30, or something slower for that funky feel.
