@@ -2,6 +2,8 @@
 
 Layout, animation, and typesetting utilities for drawing and animating in drawBot.
 
+Basically just code I reuse every time I make an animation (or anything) with drawBot.
+
 ## Why does this exist?
 
 ### furniture.animations
