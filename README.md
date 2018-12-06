@@ -1,12 +1,26 @@
 # furniture
 
-Typesetting and layout utilities for drawing and animating in drawBot.
+Layout, animation, and typesetting utilities for drawing and animating in drawBot.
 
 ## Why does this exist?
 
-Because doing animations in drawBot is awesome, but also requires a lot of boilerplate and — when you make a long animation — can be slow and memory-intensive since the rendered frames are kept in memory in preparation for the video compilation at the end. So instead of rendering all your frames within a single drawBot context, using furniture.animation you can set up the animation in such a way that it can be rendered frame-by-frame from the command-line. This is much faster than rendering all your frames within the app, and also means you can render frames in parallel on multiple cores of your machine. (Well, not yet, I'm working on that, although you can already do it manually just by opening multiple terminal windows, i.e. by breaking your animation rendering into small chunks, i.e. `python example.py --start=0 --end=50` then `python example.py --start=50` in another (not including an `--end`) means it'll just render all the frames to the end.
+### furniture.animations
 
-Also, I just really love slicing & dicing rectangles with the style of code that `furniture.geometry` provides. (More on that below.)
+Doing animations in drawBot is awesome, but it also requires a lot of boilerplate and — when you make a long animation — can be slow and memory-intensive since the rendered frames are kept in memory in preparation for the video compilation at the end. So instead of rendering all your frames within a single drawBot context, using furniture.animation you can set up the animation in such a way that it can be rendered frame-by-frame from the command-line. This is much faster than rendering all your frames within the app, and also means you can render frames in parallel on multiple cores of your machine. (Well, not yet, I'm working on that, although you can already do it manually just by opening multiple terminal windows, i.e. by breaking your animation rendering into small chunks, i.e. `python example.py --start=0 --end=50` then `python example.py --start=50` in another (not including an `--end`) means it'll just render all the frames to the end.
+
+### furniture.geometry
+
+I really love slicing & dicing rectangles with the style of code that `furniture.geometry` provides. (More on that below, but really it's just some functions for dividing/insetting/offsettin simple rectangles that can be used directly with drawBot primitives.)
+
+### furniture.markdown
+
+Doesn’t exist yet but it will I promise. Or at least I think it will at some point, who knows.
+
+## Viewing animation output
+
+Though the written frames can be `ffmpeg`'d into a video, I've found that possibly the best way to get a quick and easy preview of your rendered work is to grab a copy of Adobe Premiere (which I’m guessing almost all designers have access to, given their CC subscriptions), then start a project and **import** (⌘i) the first image in your rendered frames folder (i.e. `0000.png`) into your project, making sure to select "Image Sequence" from the cryptic "Options" option in the import dialog. Once you've imported this "image sequence," you can drag it to to the timeline area and it will create a sequence for you with all the correct settings.
+
+**Caveat!** It's easy to get the frame rate for the imported image sequence incorrect, since the default frame rate for all imported sequences is set in Premiere's `Preferences -> Media -> Indeterminate Media Timebase`. Since I'm often combining images and video shot at 23.976, I keep my "indeterminate media timebase" at 23.976, though if you're doing video-free animations, you can use a saner fps, like 24 or 30, or something slower for that funky feel.
 
 ## Features
 
