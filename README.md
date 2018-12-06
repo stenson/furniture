@@ -37,10 +37,12 @@ animation = Animation(draw, length=100, fps=23.976, burn=True)
 animation.storyboard(0, 1, 50)
 ```
 
+The `burn=True` there just adds a little ~seconds / frame index / render date~ box in the lower right-hand corner of the video, for easier debugging if you need to nudge things around.
+
 If you run that code in drawBot itself, you'll see the frames specified in `.storyboard`, i.e. frames 0, 1, and 50. If you run that code from the command line, i.e. `python example.py --start=0 --folder=frames`, this will render pngs of every one of your frames into a folder called `frames`.
 
 ## Viewing animation output
 
-Though the written frames can be `ffmpeg`'d into a video, I've found that possibly the best way to get a quick and easy preview of your rendered work is to grab a copy of Adobe Premiere (which I’m guessing almost all designers have access to, given their CC subscriptions), then start a project and **import** (⌘i) the first image in your rendered frames folder (i.e. `0000.png`) into your project, making sure to select "Image Sequence" from the cryptic "Options" option in the import dialog. Once you've imported this "image sequence," you can drag it to to the timeline area and it will create a sequence for you with all the correct settings.
+Though the written frames can be `ffmpeg`'d into a video, I've found that possibly the best way to get a quick and easy preview of your rendered work is to grab a copy of Adobe Premiere (which I’m guessing almost all designers have access to, given their CC subscriptions), then start a project and **import** (⌘i) the first image in your rendered frames folder (i.e. `0000.png`) into your project, making sure to select "Image Sequence" from the cryptic "Options" option in the import dialog. Once you've imported this "image sequence," you can drag it to to the timeline area and it will create a sequence for you with all the correct settings. This might sound like a pain, but it's actually awesome, since every time you render _any_ frames to that folder, they'll update (almost) immediately in Premiere, meaning you can playback that content immediately in sync with other audio and video. No intermediate steps necessary. Or at least Premiere seems pretty good about it.
 
 **Caveat!** It's easy to get the frame rate for the imported image sequence incorrect, since the default frame rate for all imported sequences is set in Premiere's `Preferences -> Media -> Indeterminate Media Timebase`. Since I'm often combining images and video shot at 23.976, I keep my "indeterminate media timebase" at 23.976, though if you're doing video-free animations, you can use a saner fps, like 24 or 30, or something slower for that funky feel.
