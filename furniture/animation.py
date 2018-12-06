@@ -1,18 +1,34 @@
 import sys
-import drawBot as db
-from furniture.geometry import Rect, Edge
 import time
 import os
-import errno
+import argparse
+import datetime
+import drawBot as db
+from furniture.geometry import Rect, Edge
 
-def mkdir_p(path):
-    try:
-        os.makedirs(path)
-    except OSError as exc:  # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            raise
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
+def parseargs():
+    parser = argparse.ArgumentParser(
+        prog="furniture.animation.Animation",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument("-st", "--start", type=int, default=-1)
+    parser.add_argument("-en", "--end", type=int, default=None)
+    #parser.add_argument("-ds", "--save", type=str2bool, default=False)
+    parser.add_argument("-fo", "--folder", type=str, default="frames")
+    #parser.add_argument("-co", "--compile", type=str2bool, default=False)
+    #parser.add_argument("-au", "--audio", type=str, default=None)
+
+    return parser.parse_args()
+
 
 def chunks(l, n):
     """Yield successive n-sized chunks from l."""
@@ -21,16 +37,14 @@ def chunks(l, n):
 
 
 class AnimationFrame():
-    def __init__(self, draw_fn, i, length, curve=None, dimensions=(1024, 1024), fps=30):
-        self.draw_fn = draw_fn
+    def __init__(self, animation, i):
+        self.animation = animation
         self.i = i
-        self.curve = curve
-        self.dimensions = dimensions
-        self.fps = fps
-        self.length = length
-        self.doneness = self.i / self.length
-        self.time = self.i / self.fps
-        self.x = round(self.length * curve((i/self.length)))
+        self.doneness = self.i / self.animation.length
+        self.time = self.i / self.animation.fps
+    
+    def __repr__(self):
+        return "<furniture.AnimationFrame {:04d}, {:04.2f}s, {:06.4f}%>".format(self.i, self.time, self.doneness)
     
     def draw(self, saving=False, saveTo=None):
         if saving:
@@ -38,9 +52,20 @@ class AnimationFrame():
             self.saving = True
         else:
             self.saving = False
-
-        db.newPage(*self.dimensions)
-        self.draw_fn(self.i, Rect.page(), self)
+        
+        db.newPage(*self.animation.dimensions)
+        self.page = Rect.page()
+        self.animation.fn(self)
+        if self.animation.burn:
+            box = self.page.take(64, Edge.MinY).take(120, Edge.MaxX).offset(-24, 24)
+            db.fontSize(24)
+            db.lineHeight(18)
+            db.font("CovikSansMono-Black")
+            db.fallbackFont("Menlo-Bold")
+            db.fill(0, 0.8)
+            db.rect(*box.inset(-14, -14).offset(0, 2))
+            db.fill(1)
+            db.textBox("{:07.2f}\n{:04d}\n{:%H:%M:%S}".format(self.time, self.i, datetime.datetime.now()), box, align="center")
     
         if saving:
             db.saveImage(f"{saveTo}/{self.i}.png")
@@ -56,59 +81,34 @@ class AnimationFrame():
             return None
 
 
-def str2bool(v):
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
-
-
-def draw_frames(fn,
-                total_frames,
-                start=0,
-                end=20,
-                fps=30,
-                curve=lambda y: y,
-                storyboard=[],
-                dimensions=(1024, 1024),
-                doSave=False,
-                saveTo=None):
-
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        prog="draw_frames",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
-    parser.add_argument("-st", "--start", type=int, default=-1)
-    parser.add_argument("-en", "--end", type=int, default=total_frames)
-    parser.add_argument("-ds", "--save", type=str2bool, default=False)
-    parser.add_argument("-fo", "--folder", type=str, default="frames")
-    parser.add_argument("-co", "--compile", type=str2bool, default=False)
-    parser.add_argument("-au", "--audio", type=str, default=None)
-
-    args = parser.parse_args()
-
-    if args.start >= 0:
-        storyboard = []
-
-    frames = range(args.start, args.end)
-
-    if len(storyboard) > 0:
-        print("STORYBOARDING")
-        frames = storyboard
-
-    for i in frames:
-        frame = AnimationFrame(fn, i, total_frames, curve=curve, dimensions=dimensions, fps=fps)
-        frame.draw(saving=args.save, saveTo=args.folder)
+class Animation():
+    def __init__(self, fn, length=10, fps=30, dimensions=(1920, 1080), burn=False):
+        self.fn = fn
+        self.length = length
+        self.fps = fps
+        self.dimensions = dimensions
+        self.burn = burn
+        self.args = parseargs()
     
-    if args.save:
-        print("---\nDONE RENDER: {:05d}-{:05d}\n---\n".format(args.start, args.end))
-
-    #if args.compile:
-    #    time.sleep(1)
-    #    t = str(int(time.time()))
-    #    mp4name = mp4(args.folder, t=t, fps=fps, audio=args.audio)
-    #    db.misc.executeExternalProcess(["open", mp4name])
+    def _storyboard(self, *frames):
+        for i in frames:
+            frame = AnimationFrame(self, i)
+            print("(storyboard)", frame)
+            frame.draw(saving=False, saveTo=None)
+    
+    def render(self, start=-1, end=None, folder="frames"):
+        if start == -1:
+            print("--start must be set")
+        else:
+            if end == None:
+                end = self.length
+            for i in range(start, end):
+                frame = AnimationFrame(self, i)
+                print("(render)", frame)
+                frame.draw(saving=True, saveTo=folder)
+    
+    def storyboard(self, *frames):
+        if self.args.start == -1:
+            self._storyboard(*frames)
+        else:
+            self.render(**vars(self.args))
