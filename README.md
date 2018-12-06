@@ -2,6 +2,12 @@
 
 Typesetting and layout utilities for drawing and animating in drawBot.
 
+## Why does this exist?
+
+Because doing animations in drawBot is awesome, but also requires a lot of boilerplate and — when you make a long animation — can be slow and memory-intensive since the rendered frames are kept in memory in preparation for the video compilation at the end. So instead of rendering all your frames within a single drawBot context, using furniture.animation you can set up the animation in such a way that it can be rendered frame-by-frame from the command-line. This is much faster than rendering all your frames within the app, and also means you can render frames in parallel on multiple cores of your machine. (Well, not yet, I'm working on that, although you can already do it manually just by opening multiple terminal windows, i.e. by breaking your animation rendering into small chunks, i.e. `python example.py --start=0 --end=50` then `python example.py --start=50` in another (not including an `--end`) means it'll just render all the frames to the end.
+
+Also, I just really love slicing & dicing rectangles with the style of code that `furniture.geometry` provides. (More on that below.)
+
 ## Features
 
 - `furniture.geometry` provides a simple `Rect` structure for slicing & dicing rectangles quickly and easily (loosely based on the use of `CGGeometry` in AppKit programming)
@@ -20,7 +26,3 @@ animation.storyboard(0, 1, 50)
 ```
 
 If you run that code in drawBot itself, you'll see the frames specified in `.storyboard`, i.e. frames 0, 1, and 50. If you run that code from the command line, i.e. `python example.py --start=0 --folder=frames`, this will render pngs of every one of your frames into a folder called `frames`.
-
-## Why does this exist?
-
-Because doing animations in drawBot is awesome, but also requires a lot of boilerplate and — when you make a long animation — can be very very slow. So instead of rendering all your frames within a single drawBot context, you set up the animation in such a way that it can be rendered frame-by-frame from the command-line. This is much faster than rendering all your frames within the app, and also means you can render frames in parallel on multiple cores of your machine. (Well, not yet, I'm working on that, although you can already do it manually just by opening multiple terminal windows, i.e. by breaking your animation rendering into small chunks, i.e. `python example.py --start=0 --end=50` then `python example.py --start=50` in another (not including an `--end`) means it'll just render all the frames to the end.
