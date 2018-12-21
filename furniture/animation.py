@@ -42,6 +42,7 @@ class AnimationFrame():
         self.i = i
         self.doneness = self.i / self.animation.length
         self.time = self.i / self.animation.fps
+        self.data = None
     
     def __repr__(self):
         return "<furniture.AnimationFrame {:04d}, {:04.2f}s, {:06.4f}%>".format(self.i, self.time, self.doneness)
@@ -82,21 +83,30 @@ class AnimationFrame():
 
 
 class Animation():
-    def __init__(self, fn, length=10, fps=30, dimensions=(1920, 1080), burn=False):
+    def __init__(self, fn, length=10, fps=30, dimensions=(1920, 1080), burn=False, audio=None, folder=None, file=None):
         self.fn = fn
         self.length = length
         self.fps = fps
         self.dimensions = dimensions
         self.burn = burn
         self.args = parseargs()
+        if not file:
+            raise Exception("Please pass file=__file__ in constructor arguments")
+        else:
+            self.file = file
+            self.root = os.path.dirname(os.path.realpath(file))
+            self.folder = self.root + "/" + folder 
+            self.audio = self.root + "/" + audio
+
     
-    def _storyboard(self, *frames):
+    def _storyboard(self, data, *frames):
         for i in frames:
             frame = AnimationFrame(self, i)
             print("(storyboard)", frame)
+            frame.data = data
             frame.draw(saving=False, saveTo=None)
     
-    def render(self, start=-1, end=None, folder="frames"):
+    def render(self, start=-1, end=None, data=None):
         if start == -1:
             print("--start must be set")
         else:
@@ -104,11 +114,12 @@ class Animation():
                 end = self.length
             for i in range(start, end):
                 frame = AnimationFrame(self, i)
+                frame.data = data
                 print("(render)", frame)
-                frame.draw(saving=True, saveTo=folder)
+                frame.draw(saving=True, saveTo=self.folder)
     
-    def storyboard(self, *frames):
+    def storyboard(self, data, *frames):
         if self.args.start == -1:
-            self._storyboard(*frames)
-        else:
-            self.render(**vars(self.args))
+            self._storyboard(data, *frames)
+        #else:
+        #    self.render(**vars(self.args))
