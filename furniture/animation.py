@@ -89,7 +89,7 @@ class Animation():
         self.fps = fps
         self.dimensions = dimensions
         self.burn = burn
-        self.args = parseargs()
+        #self.args = parseargs()
         if not file:
             raise Exception("Please pass file=__file__ in constructor arguments")
         else:
@@ -119,7 +119,7 @@ class Animation():
                 frame.draw(saving=True, saveTo=self.folder)
     
     def storyboard(self, data, *frames):
-        if self.args.start == -1:
-            self._storyboard(data, *frames)
+        #if self.args.start == -1:
+        self._storyboard(data, *frames)
         #else:
         #    self.render(**vars(self.args))
