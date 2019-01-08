@@ -1,10 +1,12 @@
 import sys
 import time
 import os
+import json
 import argparse
 import datetime
 import drawBot as db
 from furniture.geometry import Rect, Edge
+
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -43,22 +45,23 @@ class AnimationFrame():
         self.doneness = self.i / self.animation.length
         self.time = self.i / self.animation.fps
         self.data = None
-    
+
     def __repr__(self):
         return "<furniture.AnimationFrame {:04d}, {:04.2f}s, {:06.4f}%>".format(self.i, self.time, self.doneness)
-    
+
     def draw(self, saving=False, saveTo=None):
         if saving:
             db.newDrawing()
             self.saving = True
         else:
             self.saving = False
-        
+
         db.newPage(*self.animation.dimensions)
         self.page = Rect.page()
         self.animation.fn(self)
         if self.animation.burn:
-            box = self.page.take(64, Edge.MinY).take(120, Edge.MaxX).offset(-24, 24)
+            box = self.page.take(64, Edge.MinY).take(
+                120, Edge.MaxX).offset(-24, 24)
             db.fontSize(24)
             db.lineHeight(18)
             db.font("CovikSansMono-Black")
@@ -66,14 +69,15 @@ class AnimationFrame():
             db.fill(0, 0.8)
             db.rect(*box.inset(-14, -14).offset(0, 2))
             db.fill(1)
-            db.textBox("{:07.2f}\n{:04d}\n{:%H:%M:%S}".format(self.time, self.i, datetime.datetime.now()), box, align="center")
-    
+            db.textBox("{:07.2f}\n{:04d}\n{:%H:%M:%S}".format(
+                self.time, self.i, datetime.datetime.now()), box, align="center")
+
         if saving:
             db.saveImage(f"{saveTo}/{self.i}.png")
             db.endDrawing()
-        
+
         self.saving = False
-    
+
     # legacy
     def get(self, attr):
         if hasattr(self, attr):
@@ -91,22 +95,29 @@ class Animation():
         self.burn = burn
         #self.args = parseargs()
         if not file:
-            raise Exception("Please pass file=__file__ in constructor arguments")
+            raise Exception(
+                "Please pass file=__file__ in constructor arguments")
         else:
             self.file = file
             self.root = os.path.dirname(os.path.realpath(file))
-            self.folder = self.root + "/" + folder 
+            self.folder = self.root + "/" + folder
             self.audio = self.root + "/" + audio
 
-    
     def _storyboard(self, data, *frames):
         for i in frames:
             frame = AnimationFrame(self, i)
             print("(storyboard)", frame)
             frame.data = data
             frame.draw(saving=False, saveTo=None)
-    
+
     def render(self, start=-1, end=None, data=None):
+        if not data:
+            try:
+                with open(self.root + "/text.json", "r") as f:
+                    data = json.loads(f.read())
+            except FileExistsError:
+                print("no text.json found")
+                data = {}
         if start == -1:
             print("--start must be set")
         else:
@@ -117,9 +128,9 @@ class Animation():
                 frame.data = data
                 print("(render)", frame)
                 frame.draw(saving=True, saveTo=self.folder)
-    
+
     def storyboard(self, data, *frames):
-        #if self.args.start == -1:
+        # if self.args.start == -1:
         self._storyboard(data, *frames)
-        #else:
+        # else:
         #    self.render(**vars(self.args))
