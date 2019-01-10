@@ -253,6 +253,15 @@ class Point():
         x, y = point
         self.x = x
         self.y = y
+    
+    def from_obj(obj):
+        p = Point((0, 0))
+        try:
+            p.x = obj.x
+            p.y = obj.y
+        except:
+            pass
+        return p
 
     def offset(self, dx, dy):
         return Point((self.x + dx, self.y + dy))
@@ -274,6 +283,26 @@ class Rect():
         self.y = y
         self.w = w
         self.h = h
+    
+    def from_obj(obj, w=None, h=None):
+        r = Rect((0, 0, 0, 0))
+        try:
+            r.x = obj.x
+            r.y = obj.y
+        except:
+            pass
+        try:
+            r.w = obj.w
+            r.h = obj.h
+        except:
+            pass
+        if w:
+            r.w = w
+            r.x -= w/2
+        if h:
+            r.h = h
+            r.y -= h/2
+        return r
 
     def page():
         if db:
