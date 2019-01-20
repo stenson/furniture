@@ -9,6 +9,7 @@ YOYO = "ma"
 
 MINYISMAXY = False
 
+
 class Edge(Enum):
     MaxY = 1
     MaxX = 2
@@ -17,10 +18,11 @@ class Edge(Enum):
     CenterY = 5
     CenterX = 6
 
+
 def txt_to_edge(txt):
     if isinstance(txt, Edge):
         return txt
-    
+
     txt = txt.lower()
     if txt == "maxy":
         return Edge.MaxY
@@ -44,7 +46,7 @@ def centered_square(rect):
         return [x + (w - h) / 2, y, h, h]
     else:
         return [x, y + (h - w) / 2, w, w]
-    
+
 
 def perc_to_pix(rect, amount, edge):
     """
@@ -56,9 +58,10 @@ def perc_to_pix(rect, amount, edge):
         if amount < 0:
             return d + amount
         else:
-            return d * amount # math.floor
+            return d * amount  # math.floor
     else:
         return amount
+
 
 def divide(rect, amount, edge):
     """
@@ -71,7 +74,7 @@ def divide(rect, amount, edge):
     _or_
     `right, left = divide([0, 0, 300, 100], 200, Edge.MaxX)`
     where MaxX is the rightmost edge, and MinX is the leftmost edge
-    
+
     ## Centering
     A special use-case is if you want to break a rectangle into _three_ rectangles
     based on the center "edge", you can do something like this
@@ -83,7 +86,7 @@ def divide(rect, amount, edge):
     """
     x, y, w, h = rect
     amount = perc_to_pix(rect, amount, edge)
-    
+
     if edge == Edge.MaxY:
         if MINYISMAXY:
             return [x, y, w, amount], [x, y + amount, w, h - amount]
@@ -105,7 +108,7 @@ def divide(rect, amount, edge):
         lh = (h - amount) / 2
         return [x, y, w, lh], [x, y + lh, w, amount], [x, y + lh + amount, w, lh]
 
-        
+
 def subdivide(rect, count, edge):
     """
     Like `divide`, but here you specify the number of equal pieces you want
@@ -250,10 +253,18 @@ def edgepoints(rect, edge):
 
 class Point():
     def __init__(self, point):
-        x, y = point
-        self.x = x
-        self.y = y
-    
+        try:
+            x, y = point
+            self.x = x
+            self.y = y
+        except:
+            try:
+                self.x = point.x
+                self.y = point.y
+            except:
+                self.x = 0
+                self.y = 0
+
     def from_obj(obj):
         p = Point((0, 0))
         try:
@@ -266,6 +277,9 @@ class Point():
     def offset(self, dx, dy):
         return Point((self.x + dx, self.y + dy))
 
+    def rect(self, w, h):
+        return Rect((self.x-w/2, self.y-h/2, w, h))
+
     def xy(self):
         return self.x, self.y
 
@@ -275,6 +289,15 @@ class Point():
     def __getitem__(self, key):
         return self.xy()[key]
 
+    def __setitem__(self, key, value):
+        if key == 0:
+            self.x = value
+        elif key == 1:
+            self.y = value
+        else:
+            raise IndexError(
+                "Invalid index for point assignment, must be 0 or 1")
+
 
 class Rect():
     def __init__(self, rect):
@@ -283,7 +306,7 @@ class Rect():
         self.y = y
         self.w = w
         self.h = h
-    
+
     def from_obj(obj, w=None, h=None):
         r = Rect((0, 0, 0, 0))
         try:
@@ -308,7 +331,8 @@ class Rect():
         if db:
             return Rect((0, 0, db.width(), db.height()))
         else:
-            raise ImportError("DrawBot was not found, so `page` cannot be called")
+            raise ImportError(
+                "DrawBot was not found, so `page` cannot be called")
 
     def __getitem__(self, key):
         return self.rect()[key]
@@ -333,7 +357,7 @@ class Rect():
         if edge == Edge.CenterX or edge == Edge.CenterY:
             a, b, c = divide(self.rect(), amount, edge)
             return Rect(a), Rect(b), Rect(c)
-        else:    
+        else:
             a, b = divide(self.rect(), amount, edge)
             return Rect(a), Rect(b)
 
@@ -346,7 +370,8 @@ class Rect():
         leadings = leadings + [0]
         full = self.w if edge == Edge.MinX or edge == Edge.MaxX else self.h
         unit = (full - sum(leadings)) / count
-        amounts = [val for pair in zip([unit] * count, leadings) for val in pair][:-1]
+        amounts = [val for pair in zip([unit] * count, leadings)
+                   for val in pair][:-1]
         return [Rect(x) for x in subdivide(self.rect(), amounts, edge)][::2]
 
     def scale(self, s, x_edge=Edge.CenterX, y_edge=Edge.CenterY):
@@ -380,7 +405,8 @@ class Rect():
         return Rect(add(self, another_rect))
 
     def grid(self, rows=2, columns=2):
-        xs = [row.subdivide(columns, Edge.MinX) for row in self.subdivide(rows, Edge.MaxY)]
+        xs = [row.subdivide(columns, Edge.MinX)
+              for row in self.subdivide(rows, Edge.MaxY)]
         return [item for sublist in xs for item in sublist]
 
     def pieces(self, amount, edge):

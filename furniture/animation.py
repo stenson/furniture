@@ -87,7 +87,7 @@ class AnimationFrame():
 
 
 class Animation():
-    def __init__(self, fn, length=10, fps=30, dimensions=(1920, 1080), burn=False, audio=None, folder=None, file=None):
+    def __init__(self, fn, length=10, fps=30, dimensions=(1920, 1080), burn=False, audio=None, folder="frames", file=None):
         self.fn = fn
         self.length = length
         self.fps = fps
@@ -101,7 +101,8 @@ class Animation():
             self.file = file
             self.root = os.path.dirname(os.path.realpath(file))
             self.folder = self.root + "/" + folder
-            self.audio = self.root + "/" + audio
+            if audio:
+                self.audio = self.root + "/" + audio
 
     def _storyboard(self, data, *frames):
         for i in frames:
@@ -115,7 +116,7 @@ class Animation():
             try:
                 with open(self.root + "/text.json", "r") as f:
                     data = json.loads(f.read())
-            except FileExistsError:
+            except FileNotFoundError:
                 print("no text.json found")
                 data = {}
         if start == -1:
