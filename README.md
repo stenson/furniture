@@ -8,13 +8,13 @@ Basically just code I reuse every time I make an animation (or anything) with dr
 
 ### furniture.animations
 
-Doing animations in drawBot is awesome, but it also requires a lot of boilerplate and — when you make a long animation — can be slow and memory-intensive since the rendered frames are kept in memory in preparation for the video compilation at the end. So instead of rendering all your frames within a single drawBot context, using furniture.animation you can set up the animation in such a way that it can be rendered frame-by-frame from the command-line. This is much faster than rendering all your frames within the app, and also means you can render frames in parallel on multiple cores of your machine. (Well, not yet, I'm working on that, although you can already do it manually just by opening multiple terminal windows, i.e. by breaking your animation rendering into small chunks, i.e. `python example.py --start=0 --end=50` then `python example.py --start=50` in another (not including an `--end`) means it'll just render all the frames to the end.
+Doing animations in drawBot is awesome, but it also requires a lot of boilerplate and — when you make a long animation — can be slow and memory-intensive since the rendered frames are kept in memory in preparation for the video compilation at the end. So instead of rendering all your frames within a single drawBot context, using furniture.animation you can set up the animation in such a way that it can be rendered frame-by-frame from the command-line. This is much faster than rendering all your frames within the app, and also means you can render frames in parallel on multiple cores of your machine. (Well, not yet, I'm working on that.)
 
 **_Caveat_** If you know of a better/alternative library for this, please let me know.
 
 ### furniture.geometry
 
-I really love slicing & dicing rectangles with the style of code that `furniture.geometry` provides. (More on that below, but really it's just some functions for dividing/insetting/offsettin simple rectangles that can be used directly with drawBot primitives.)
+I really love slicing & dicing rectangles with the style of code that `furniture.geometry` provides. (More on that below, but really it's just some functions for dividing/insetting/offsettin simple rectangles that can be used directly with drawBot primitives.) Incidentally, I've since found that this code is quite similar to the `arrayTools` module in `fontTools.misc`, which you can see here: https://github.com/fonttools/fonttools/blob/master/Lib/fontTools/misc/arrayTools.py
 
 ### furniture.markdown
 
