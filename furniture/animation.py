@@ -49,7 +49,7 @@ class AnimationFrame():
     def __repr__(self):
         return "<furniture.AnimationFrame {:04d}, {:04.2f}s, {:06.4f}%>".format(self.i, self.time, self.doneness)
 
-    def draw(self, saving=False, saveTo=None):
+    def draw(self, saving=False, saveTo=None, fmt="png"):
         if saving:
             db.newDrawing()
             self.saving = True
@@ -73,7 +73,7 @@ class AnimationFrame():
                 self.time, self.i, datetime.datetime.now()), box, align="center")
 
         if saving:
-            db.saveImage(f"{saveTo}/{self.i}.png")
+            db.saveImage(f"{saveTo}/{self.i}.{fmt}")
             db.endDrawing()
 
         self.saving = False
@@ -87,12 +87,13 @@ class AnimationFrame():
 
 
 class Animation():
-    def __init__(self, fn, length=10, fps=30, dimensions=(1920, 1080), burn=False, audio=None, folder="frames", file=None):
+    def __init__(self, fn, length=10, fps=30, dimensions=(1920, 1080), burn=False, audio=None, folder="frames", file=None, fmt="png"):
         self.fn = fn
         self.length = length
         self.fps = fps
         self.dimensions = dimensions
         self.burn = burn
+        self.fmt = fmt
         #self.args = parseargs()
         if not file:
             raise Exception(
@@ -128,7 +129,7 @@ class Animation():
                 frame = AnimationFrame(self, i)
                 frame.data = data
                 print("(render)", frame)
-                frame.draw(saving=True, saveTo=self.folder)
+                frame.draw(saving=True, saveTo=self.folder, fmt=self.fmt)
 
     def storyboard(self, data, *frames):
         # if self.args.start == -1:
