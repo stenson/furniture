@@ -34,10 +34,9 @@ class AnimationFrame():
         if self.animation.burn:
             box = self.page.take(64, Edge.MinY).take(
                 120, Edge.MaxX).offset(-24, 24)
-            db.fontSize(24)
-            db.lineHeight(18)
-            db.font("CovikSansMono-Black")
-            db.fallbackFont("Menlo-Bold")
+            db.fontSize(20)
+            db.lineHeight(20)
+            db.font("Menlo-Bold")
             db.fill(0, 0.8)
             db.rect(*box.inset(-14, -14).offset(0, 2))
             db.fill(1)

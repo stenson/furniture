@@ -13,9 +13,7 @@ setuptools.setup(
     #long_description_content_type="text/markdown",
     url="https://github.com/stenson/furniture",
     packages=[
-        "furniture",
-        #"furniture.geometry",
-        #"furniture.animation"
+        "furniture"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
