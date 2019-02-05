@@ -2,40 +2,11 @@ import sys
 import time
 import os
 import json
-import argparse
+import tempfile
 import datetime
 import drawBot as db
+from subprocess import Popen, PIPE
 from furniture.geometry import Rect, Edge
-
-
-def str2bool(v):
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
-
-
-def parseargs():
-    parser = argparse.ArgumentParser(
-        prog="furniture.animation.Animation",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
-    parser.add_argument("-st", "--start", type=int, default=-1)
-    parser.add_argument("-en", "--end", type=int, default=None)
-    #parser.add_argument("-ds", "--save", type=str2bool, default=False)
-    parser.add_argument("-fo", "--folder", type=str, default="frames")
-    #parser.add_argument("-co", "--compile", type=str2bool, default=False)
-    #parser.add_argument("-au", "--audio", type=str, default=None)
-
-    return parser.parse_args()
-
-
-def chunks(l, n):
-    """Yield successive n-sized chunks from l."""
-    for i in range(0, len(l), n):
-        yield l[i:i + n]
 
 
 class AnimationFrame():
@@ -58,7 +29,8 @@ class AnimationFrame():
 
         db.newPage(*self.animation.dimensions)
         self.page = Rect.page()
-        self.animation.fn(self)
+        with db.savedState():
+            self.animation.fn(self)
         if self.animation.burn:
             box = self.page.take(64, Edge.MinY).take(
                 120, Edge.MaxX).offset(-24, 24)
@@ -78,61 +50,79 @@ class AnimationFrame():
 
         self.saving = False
 
-    # legacy
-    def get(self, attr):
-        if hasattr(self, attr):
-            return getattr(self, attr)
-        else:
-            return None
+
+AFTER_EFFECTS_PURGE_JSX = """
+//@target aftereffects
+(function () {
+    var comp = app.project.activeItem;
+    comp.time = 0;
+    $.sleep(20);
+    app.purge(PurgeTarget.IMAGE_CACHES);
+    alert("purged");
+})();
+"""
+
+
+def purge_after_effects_memory():
+    with tempfile.NamedTemporaryFile(mode="w") as temp:
+        temp.write(AFTER_EFFECTS_PURGE_JSX)
+        temp.flush()
+        script = """
+            tell application id "com.adobe.aftereffects" to activate DoScriptFile "{}"
+        """.format(temp.name)
+        p = Popen(["osascript", "-e", script])
+        stdout, stderr = p.communicate()
+        return p.returncode, stdout, stderr
 
 
 class Animation():
-    def __init__(self, fn, length=10, fps=30, dimensions=(1920, 1080), burn=False, audio=None, folder="frames", file=None, fmt="png"):
+    def __init__(self, fn, length=10, fps=30, dimensions=(1920, 1080), burn=False, audio=None, folder="frames", fmt="png", data=None):
         self.fn = fn
         self.length = length
         self.fps = fps
         self.dimensions = dimensions
         self.burn = burn
         self.fmt = fmt
-        #self.args = parseargs()
-        if not file:
-            raise Exception(
-                "Please pass file=__file__ in constructor arguments")
-        else:
-            self.file = file
-            self.root = os.path.dirname(os.path.realpath(file))
-            self.folder = self.root + "/" + folder
-            if audio:
-                self.audio = self.root + "/" + audio
+        self.folder = folder
+        self.audio = audio
+        self.data = data
 
-    def _storyboard(self, data, *frames):
-        for i in frames:
+    def storyboard(self, data={}, frames=[0]):
+        try:
+            for i in frames:
+                frame = AnimationFrame(self, i)
+                print("(storyboard)", frame)
+                frame.data = data
+                frame.draw(saving=False, saveTo=None)
+        except TypeError:
+            i = frames
             frame = AnimationFrame(self, i)
             print("(storyboard)", frame)
             frame.data = data
             frame.draw(saving=False, saveTo=None)
 
-    def render(self, start=-1, end=None, data=None):
-        if not data:
+    def render(self, start=0, end=None, data=None, purgeAfterEffects=False):
+        if not data and self.data:
             try:
-                with open(self.root + "/text.json", "r") as f:
+                with open(self.data, "r") as f:
                     data = json.loads(f.read())
             except FileNotFoundError:
-                print("no text.json found")
                 data = {}
-        if start == -1:
-            print("--start must be set")
-        else:
-            if end == None:
-                end = self.length
-            for i in range(start, end):
-                frame = AnimationFrame(self, i)
-                frame.data = data
-                print("(render)", frame)
-                frame.draw(saving=True, saveTo=self.folder, fmt=self.fmt)
+        if end == None:
+            end = self.length
+        for i in range(start, end):
+            frame = AnimationFrame(self, i)
+            frame.data = data
+            print("(render)", frame)
+            frame.draw(saving=True, saveTo=self.folder, fmt=self.fmt)
+        if purgeAfterEffects:
+            print("furniture.animation >>> purging current After Effects memory...")
+            purge_after_effects_memory()
 
-    def storyboard(self, data, *frames):
-        # if self.args.start == -1:
-        self._storyboard(data, *frames)
-        # else:
-        #    self.render(**vars(self.args))
+
+if __name__ == "__main__":
+    def draw(frame):
+        pass
+    animation = Animation(draw, length=10, fps=30, dimensions=(1000, 1000))
+    animation.storyboard(frames=0)
+    purge_after_effects_memory()
