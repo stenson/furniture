@@ -14,7 +14,7 @@ Doing animations in drawBot is awesome, but it also requires a lot of boilerplat
 
 ### furniture.geometry
 
-I really love slicing & dicing rectangles with the style of code that `furniture.geometry` provides. (More on that below, but really it's just some functions for dividing/insetting/offsettin simple rectangles that can be used directly with drawBot primitives.) Incidentally, I've since found that this code is quite similar to the `arrayTools` module in `fontTools.misc`, which you can see here: https://github.com/fonttools/fonttools/blob/master/Lib/fontTools/misc/arrayTools.py
+I really love slicing & dicing rectangles with the style of code that `furniture.geometry` provides. (More on that below, but really it's just some functions for dividing/insetting/offsetting simple rectangles that can be used directly with drawBot primitives, because the `Rectangle` class implements iterable access. Incidentally, I've since found that this code is quite similar to the `arrayTools` module in `fontTools.misc`, which you can see here, and can be used on `Rectangle` objects: https://github.com/fonttools/fonttools/blob/master/Lib/fontTools/misc/arrayTools.py
 
 ## Features
 
