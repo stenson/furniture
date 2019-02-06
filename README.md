@@ -4,6 +4,10 @@ Layout, animation, and typesetting utilities for drawing and animating in drawBo
 
 Basically just code I reuse every time I make an animation (or anything) with drawBot.
 
+## Installation
+
+`pip install furniture-typo`
+
 ## Why does this exist?
 
 ### furniture.animations
