@@ -48,3 +48,7 @@ Though the written frames can be `ffmpeg`'d into a video, I've found that possib
 **Why render PDF and not PNG?** I've noticed some artifacting in variable fonts when cutting png image directly from DrawBot with certain fonts, but the same artifacts are not present in PDFs, and remain invisible even when After Effects renders PDFs down to mp4s via the Adobe Media Encoder pipeline.
 
 **Caveat!** It's easy to get the frame rate for the imported image sequence incorrect, since the default frame rate for all imported sequences is set in Premiere's `Preferences -> Media -> Indeterminate Media Timebase` and After Effects’ `Preferences -> Import -> Sequence Footage -> frames per second`. Since I'm often combining images and video shot at 23.976, I keep my "indeterminate media timebase" at 23.976, though if you're doing video-free animations, you can use a saner fps, like 24 or 30, or something slower for a funkier feel.
+
+# Documentation
+
+At the moment this library has extremely limited functionality, and the best documentation can be found in [this article](https://adaktypo.com/articles/animating-with-drawbot.html), which is a tutorial on using the callback-style animation pattern that `furniture.animation` provides for.
