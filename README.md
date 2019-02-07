@@ -16,6 +16,10 @@ Doing animations in drawBot is awesome, but it also requires a lot of boilerplat
 
 **_Caveat_** If you know of a better/alternative library for this, please let me know!
 
+## Why is it called furniture?
+
+Because it helps lay out type, kind of like [furniture](https://en.wikipedia.org/wiki/Furniture_(typesetting)).
+
 ### furniture.geometry
 
 I really love slicing & dicing rectangles with the style of code that `furniture.geometry` provides. (More on that below, but really it's just some functions for dividing/insetting/offsetting simple rectangles that can be used directly with drawBot primitives, because the `Rectangle` class implements iterable access. Incidentally, I've since found that this code is quite similar to the `arrayTools` module in `fontTools.misc`, which you can see here, and can be used on `Rectangle` objects: https://github.com/fonttools/fonttools/blob/master/Lib/fontTools/misc/arrayTools.py
@@ -49,6 +53,6 @@ Though the written frames can be `ffmpeg`'d into a video, I've found that possib
 
 **Caveat!** It's easy to get the frame rate for the imported image sequence incorrect, since the default frame rate for all imported sequences is set in Premiere's `Preferences -> Media -> Indeterminate Media Timebase` and After Effects’ `Preferences -> Import -> Sequence Footage -> frames per second`. Since I'm often combining images and video shot at 23.976, I keep my "indeterminate media timebase" at 23.976, though if you're doing video-free animations, you can use a saner fps, like 24 or 30, or something slower for a funkier feel.
 
-# Documentation
+## Documentation
 
 At the moment this library has extremely limited functionality, and the best documentation can be found in [this article](https://adaktypo.com/articles/animating-with-drawbot.html), which is a tutorial on using the callback-style animation pattern that `furniture.animation` provides for.
