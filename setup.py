@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="furniture",
-    version="0.0.8",
+    version="0.0.9",
     author="Rob Stenson",
     author_email="rob.stenson@gmail.com",
     description="Typesetting and layout utilities for drawing and animating in drawBot",
