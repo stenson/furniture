@@ -6,7 +6,7 @@ Basically just code I reuse every time I make an animation (or anything) with dr
 
 ## Installation
 
-`pip install furniture-typo`
+`pip install furniture`
 
 ## Why does this exist?
 
