@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="furniture-typo",
+    name="furniture",
     version="0.0.1",
     author="Rob Stenson",
     author_email="rob.stenson@gmail.com",
