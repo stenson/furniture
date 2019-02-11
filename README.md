@@ -8,6 +8,28 @@ Basically just code I reuse every time I make an animation (or anything) with dr
 
 `pip install furniture`
 
+(Or `pip3 install furniture` if your `pip` does not point to `pip3`.)
+
+This library is meant to be used in conjuction with [DrawBot](http://www.drawbot.com/). It can be used within DrawBot itself (in the integrated editor), but to get the most out of furniture, you’ll also need a module installation of DrawBot.
+
+There are instructions [here in the DrawBot github repo](https://github.com/typemytype/drawbot) on how to do a module installation, but here’s a slightly modified version that has worked on my machine.
+
+```
+> git clone https://github.com/typemytype/drawbot
+> cd drawbot
+> pip3 install PyObjC
+> pip3 install fontTools
+> python3 setup.py install
+```
+
+You can verify a module installation of DrawBot and furniture by checking them in a Python REPL:
+
+```python
+> python3
+>>> import drawBot
+>>> import furniture
+```
+
 ## Why does this exist?
 
 ### furniture.animations
