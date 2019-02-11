@@ -3,3 +3,4 @@ frames
 build
 dist
 furniture.egg-info
+__pycache__
