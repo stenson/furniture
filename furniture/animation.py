@@ -75,7 +75,25 @@ def purge_after_effects_memory():
 
 
 class Animation():
-    def __init__(self, fn, length=10, fps=30, dimensions=(1920, 1080), burn=False, audio=None, folder="frames", fmt="png", data=None):
+    def __init__(self, fn,
+            length=10,
+            fps=30,
+            dimensions=(1920, 1080),
+            burn=False,
+            audio=None,
+            folder="frames",
+            fmt="png",
+            data=None):
+        """
+        - `fn` is a callback function that takes a single argument, `frame`
+        - `fps` is frames-per-second
+        - `dimensions` is the page size, a tuple `(x, y)`
+        - `burn`=True adds a small counter for the current frame and time
+        - `audio` is not currently used
+        - `folder` is the folder to which frames are rendered
+        - `fmt` is file type that will be used when rendering
+        - `data` is data you want sent into the callback via `frame.data`
+        """
         self.fn = fn
         self.length = length
         self.fps = fps

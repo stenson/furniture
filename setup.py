@@ -9,7 +9,7 @@ setuptools.setup(
     version="0.0.9",
     author="Rob Stenson",
     author_email="rob.stenson@gmail.com",
-    description="Typesetting and layout utilities for drawing and animating in drawBot",
+    description="Typesetting and layout utilities for drawing and animating in DrawBot",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/stenson/furniture",
