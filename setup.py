@@ -1,7 +1,8 @@
 import setuptools
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+long_description = """
+### Latest documentation available [at the github repo](https://github.com/stenson/furniture)
+"""
 
 setuptools.setup(
     name="furniture",
