@@ -4,6 +4,10 @@ Layout, animation, and typesetting utilities for drawing and animating in drawBo
 
 Basically just code I reuse every time I make an animation (or anything) with drawBot.
 
+## Tutorial
+
+At the moment this library has extremely limited functionality, and the best documentation can be found in [this article](https://adaktypo.com/articles/animating-with-drawbot.html), which is a tutorial on using the callback-style animation pattern that `furniture.animation` provides for.
+
 ## Installation
 
 `pip install furniture`
