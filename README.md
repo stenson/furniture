@@ -40,7 +40,7 @@ Doing animations in drawBot is awesome, but it also requires a lot of boilerplat
 
 ## Why is it called furniture?
 
-Because it helps lay out type, kind of like [furniture](https://en.wikipedia.org/wiki/Furniture_(typesetting)).
+Because it helps lay-out type, kind of like [furniture](https://en.wikipedia.org/wiki/Furniture_(typesetting)).
 
 ### furniture.geometry
 
@@ -49,7 +49,8 @@ I really love slicing & dicing rectangles with the style of code that `furniture
 ## Features
 
 - `furniture.geometry` provides a simple `Rect` structure for slicing & dicing rectangles quickly and easily (loosely based on the use of `CGGeometry` in AppKit programming)
-- `furniture.animation` provides a simple `Animation` object for parameterizing animations via a single frame-wise callback that operates in a stateless fashion (meaning any frame of your drawing can be rendered at any time). That is, you build an `Animation` object by giving it a `draw` function, which in your code would look like `def draw(frame):` and within that function you get the context `frame` object (an `AnimationFrame`) that has properties like `frame.i` (index of the current frame), as well as `frame.doneness` (a 0-1 float that gives the "doneness" of the animation as a function of its length, which is an argument provided to the original `Animation` constructor) — see `example.py` for an example, or below:
+- `furniture.animation` provides a simple `Animation` object for parameterizing animations via a single frame-wise callback that operates in a stateless fashion (meaning any frame of your drawing can be rendered at any time). That is, you build an `Animation` object by giving it a `draw` function, which in your code would look like `def draw(frame):` and within that function you get the context `frame` object (an `AnimationFrame`) that has properties like `frame.i` (index of the current frame), as well as `frame.doneness` (a 0-1 float that gives the "doneness" of the animation as a function of its length, which is an argument provided to the original `Animation` constructor) — as below:
+- `furniture.vfont` provides a single function at the moment, `scale_to_axis` for scaling a 0-1 value to an axis as provided by DrawBot’s `listFontVariations` function.
 
 ```
 from furniture.animation import Animation
@@ -59,19 +60,19 @@ def draw(frame):
     fill(random(), random(), random())
     rect(*frame.page.take(frame.doneness, "minx"))
 
-animation = Animation(draw, length=100, fps=23.976, fmt="pdf", burn=True, file=__file__)
-animation.storyboard({}, 0, 1, 50)
+animation = Animation(draw, length=100, burn=True)
+animation.storyboard(frames=[0, 1, 50])
 ```
 
-The `burn=True` there just adds a little ~seconds / frame index / render date~ box in the lower right-hand corner of the video, for easier debugging if you need to nudge things around once you’ve viewed them in After Effects.
+The `burn=True` there just adds a little `seconds / frame index / render date` box in the lower right-hand corner of the video, for easier debugging if you need to nudge things around once you’ve viewed them in After Effects.
 
-If you run that code in drawBot itself, you'll see the frames specified in `.storyboard`, i.e. frames 0, 1, and 50. If you run that code from a headless Python process, i.e. `import animationfile.py; animationfile.animation.render(start=0);`, this will render pdfs of every one of your frames into a folder called `frames`.
+If you run that code in DrawBot itself, you'll see the frames specified in `.storyboard`, i.e. frames 0, 1, and 50. If you save this code in a file called "example.py" and run the code from a standard (command-line) Python process, i.e. `python -c 'import example; example.animation.render();`, this will render pdfs of every one of your frames into a folder called `frames`.
 
 ## Viewing animation output
 
-Though the written frames can be `ffmpeg`'d into a video, I've found that possibly the best way to get a quick and easy preview of your rendered work is to grab a copy of Adobe After Effects (free if you have a CC subscription), then start a project and **import** (⌘i) the first image in your rendered frames folder (i.e. `0000.pdf`) into your project, making sure to select "Image Sequence" from the cryptic "Options" option in the import dialog. Once you've imported this "image sequence," you can drag it to to the timeline area and it will create a sequence for you with all the correct settings. Then you can create a composition from that sequence, and, when you've rendered new frames, you can purge the After Effects memory (via Edit > Purge > All Memory) and — voila! — you’ve got a previewable/steppable animation.
+Though the written frames can be `ffmpeg`'d into a video, I've found that possibly the best way to get a quick and easy preview of your rendered work is to grab a copy of Adobe After Effects (free if you have a CC subscription), then start a project and **import** (⌘i) the first image in your rendered frames folder (i.e. `0000.pdf`) into your project, making sure to select "Image Sequence" from the cryptic "Options" option in the import dialog. Once you've imported this "image sequence," you can drag it to to the timeline area and it will create a sequence for you with all the correct settings. Then you can create a composition from that sequence, and, when you’ve rendered new frames, you can purge the After Effects memory (via Edit > Purge > All Memory) and — voila! — you’ve got a previewable/steppable animation. 
 
-**Why render PDF and not PNG?** I've noticed some artifacting in variable fonts when cutting png image directly from DrawBot with certain fonts, but the same artifacts are not present in PDFs, and remain invisible even when After Effects renders PDFs down to mp4s via the Adobe Media Encoder pipeline.
+**Why render PDF and not PNG?** I've noticed some artifacting in variable fonts when cutting png images directly from DrawBot with certain fonts, but the same artifacts are not present in PDFs, and remain invisible even when After Effects renders PDFs down to mp4s via the Adobe Media Encoder pipeline.
 
 **Caveat!** It's easy to get the frame rate for the imported image sequence incorrect, since the default frame rate for all imported sequences is set in Premiere's `Preferences -> Media -> Indeterminate Media Timebase` and After Effects’ `Preferences -> Import -> Sequence Footage -> frames per second`. Since I'm often combining images and video shot at 23.976, I keep my "indeterminate media timebase" at 23.976, though if you're doing video-free animations, you can use a saner fps, like 24 or 30, or something slower for a funkier feel.
 

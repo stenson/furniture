@@ -20,7 +20,7 @@ class AnimationFrame():
     def __repr__(self):
         return "<furniture.AnimationFrame {:04d}, {:04.2f}s, {:06.4f}%>".format(self.i, self.time, self.doneness)
 
-    def draw(self, saving=False, saveTo=None, fmt="png"):
+    def draw(self, saving=False, saveTo=None, fmt="pdf"):
         if saving:
             db.newDrawing()
             self.saving = True
@@ -82,7 +82,7 @@ class Animation():
             burn=False,
             audio=None,
             folder="frames",
-            fmt="png",
+            fmt="pdf",
             data=None):
         """
         - `fn` is a callback function that takes a single argument, `frame`
