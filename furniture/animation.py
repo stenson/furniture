@@ -118,7 +118,7 @@ class Animation():
             frame.data = data
             frame.draw(saving=False, saveTo=None)
 
-    def render(self, start=0, end=None, data=None, purgeAfterEffects=False):
+    def render(self, indicesSlice=None, start=0, end=None, data=None, purgeAfterEffects=False, folder=None, fmt=None):
         if not data and self.data:
             try:
                 with open(self.data, "r") as f:
@@ -127,11 +127,16 @@ class Animation():
                 data = {}
         if end == None:
             end = self.length
-        for i in range(start, end):
+        indices = list(range(start, end))
+        
+        if indicesSlice:
+            indices = list(range(*indicesSlice.indices(self.length)))
+
+        for i in indices:
             frame = AnimationFrame(self, i)
             frame.data = data
             print("(render)", frame)
-            frame.draw(saving=True, saveTo=self.folder, fmt=self.fmt)
+            frame.draw(saving=True, saveTo=folder if folder else self.folder, fmt=fmt if fmt else self.fmt)
         if purgeAfterEffects:
             print("furniture.animation >>> purging current After Effects memory...")
             purge_after_effects_memory()
