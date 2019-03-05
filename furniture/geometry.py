@@ -284,7 +284,7 @@ class Point():
         return self.x, self.y
 
     def __repr__(self):
-        return "<builder.geometry.Point" + str(self.xy()) + ">"
+        return "<furn-Point" + str(self.xy()) + ">"
 
     def __getitem__(self, key):
         return self.xy()[key]
@@ -338,7 +338,7 @@ class Rect():
         return self.rect()[key]
 
     def __repr__(self):
-        return "<builder.geometry.Rect" + str(self.rect()) + ">"
+        return "<furn-Rect" + str(self.rect()) + ">"
 
     def rect(self):
         return [self.x, self.y, self.w, self.h]
