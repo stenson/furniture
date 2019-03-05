@@ -4,6 +4,10 @@ Layout, animation, and typesetting utilities for drawing and animating in drawBo
 
 Basically just code I reuse every time I make an animation (or anything) with drawBot.
 
+## Tutorial
+
+At the moment this library has extremely limited functionality, and the best documentation can be found in [this article](https://adaktypo.com/articles/animating-with-drawbot.html), which is a tutorial on using the callback-style animation pattern that `furniture.animation` provides for.
+
 ## Installation
 
 `pip install furniture`
@@ -66,7 +70,7 @@ animation.storyboard(frames=[0, 1, 50])
 
 The `burn=True` there just adds a little `seconds / frame index / render date` box in the lower right-hand corner of the video, for easier debugging if you need to nudge things around once you’ve viewed them in After Effects.
 
-If you run that code in DrawBot itself, you'll see the frames specified in `.storyboard`, i.e. frames 0, 1, and 50. If you save this code in a file called "example.py" and run the code from a standard (command-line) Python process, i.e. `python -c 'import example; example.animation.render();`, this will render pdfs of every one of your frames into a folder called `frames`.
+If you run that code in DrawBot itself, you'll see the frames specified in `.storyboard`, i.e. frames 0, 1, and 50. If you save this code in a file called "example.py" and run the code from a standard (command-line) Python process, i.e. `python -c 'import example; example.animation.render();'`, this will render pdfs of every one of your frames into a folder called `frames`.
 
 ## Viewing animation output
 

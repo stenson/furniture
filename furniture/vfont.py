@@ -13,4 +13,12 @@ def scale_to_axis(axis, value, insetMin=1, insetMax=1):
     minv = axis.get("minValue", 0)
     maxv = axis.get("maxValue", 1000)
     scaled = (value * (maxv - minv)) + minv
-    return max(minv + insetMin, min(maxv - insetMax, scaled))  # avoid actual min/max
+    return max(minv + insetMin, min(maxv - insetMax, scaled))
+
+
+def scaledFontVariations(fs, **kwargs):
+    for axis, value in kwargs.items():
+        axis_dict = fs.listFontVariations().get(axis)
+        scaled = scale_to_axis(axis_dict, value)
+        fs.fontVariations(**{axis:scaled})
+    return scaled

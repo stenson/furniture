@@ -6,7 +6,7 @@ long_description = """
 
 setuptools.setup(
     name="furniture",
-    version="0.1.0",
+    version="0.1.1",
     author="Rob Stenson",
     author_email="rob.stenson@gmail.com",
     description="Typesetting and layout utilities for drawing and animating in DrawBot",
@@ -16,6 +16,11 @@ setuptools.setup(
     packages=[
         "furniture"
     ],
+    entry_points={
+        'console_scripts': [
+            'furniture = furniture.renderer:main'
+        ],
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
