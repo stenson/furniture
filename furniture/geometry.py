@@ -395,10 +395,14 @@ class Rect():
         edge = txt_to_edge(edge)
         return Rect(expand(self.rect(), amount, edge))
 
-    def inset(self, dx, dy):
+    def inset(self, dx, dy=None):
+        if not dy:
+            dy = dx
         return Rect(inset(self.rect(), dx, dy))
 
-    def offset(self, dx, dy):
+    def offset(self, dx, dy=None):
+        if not dy:
+            dy = dx
         return Rect(offset(self.rect(), dx, dy))
 
     def __add__(self, another_rect):
