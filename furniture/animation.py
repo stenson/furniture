@@ -16,11 +16,12 @@ class AnimationFrame():
         self.doneness = self.i / self.animation.length
         self.time = self.i / self.animation.fps
         self.data = None
+        self.layers = None
 
     def __repr__(self):
         return "<furniture.AnimationFrame {:04d}, {:04.2f}s, {:06.4f}%>".format(self.i, self.time, self.doneness)
 
-    def draw(self, saving=False, saveTo=None, fmt="pdf"):
+    def draw(self, saving=False, saveTo=None, fmt="pdf", layers=[], fill=None):
         if saving:
             db.newDrawing()
             self.saving = True
@@ -30,7 +31,13 @@ class AnimationFrame():
         db.newPage(*self.animation.dimensions)
         self.page = Rect.page()
         with db.savedState():
+            if fill and not saveTo:
+                with db.savedState():
+                    db.fill(*fill)
+                    db.rect(*self.page)
+            self.layers = layers
             self.animation.fn(self)
+            self.layers = None
         if self.animation.burn:
             box = self.page.take(64, Edge.MinY).take(
                 120, Edge.MaxX).offset(-24, 24)
@@ -83,7 +90,9 @@ class Animation():
             audio=None,
             folder="frames",
             fmt="pdf",
-            data=None):
+            data=None,
+            layers=[],
+            fill=None):
         """
         - `fn` is a callback function that takes a single argument, `frame`
         - `fps` is frames-per-second
@@ -103,20 +112,21 @@ class Animation():
         self.folder = folder
         self.audio = audio
         self.data = data
+        self.layers = layers
+        self.fill = fill
 
     def storyboard(self, data={}, frames=[0]):
-        try:
-            for i in frames:
-                frame = AnimationFrame(self, i)
-                print("(storyboard)", frame)
-                frame.data = data
-                frame.draw(saving=False, saveTo=None)
-        except TypeError:
-            i = frames
+        def _storyboard(i):
             frame = AnimationFrame(self, i)
             print("(storyboard)", frame)
             frame.data = data
-            frame.draw(saving=False, saveTo=None)
+            frame.draw(saving=False, saveTo=None, layers=self.layers, fill=self.fill)
+        try:
+            for i in frames:
+                _storyboard(i)
+        except TypeError:
+            i = frames
+            _storyboard(i)
 
     def render(self, indicesSlice=None, start=0, end=None, data=None, purgeAfterEffects=False, folder=None, fmt=None):
         if not data and self.data:
@@ -132,11 +142,22 @@ class Animation():
         if indicesSlice:
             indices = list(range(*indicesSlice.indices(self.length)))
 
+        folder = folder if folder else self.folder
+        fmt = fmt if fmt else self.fmt
+
         for i in indices:
-            frame = AnimationFrame(self, i)
-            frame.data = data
-            print("(render)", frame)
-            frame.draw(saving=True, saveTo=folder if folder else self.folder, fmt=fmt if fmt else self.fmt)
+            if len(self.layers) > 0:
+                for layer in self.layers:
+                    frame = AnimationFrame(self, i)
+                    frame.data = data
+                    print(f"(render:layer:{layer})", frame)
+                    _folder = folder + "/" + layer
+                    frame.draw(saving=True, saveTo=_folder, fmt=fmt, layers=[layer], fill=self.fill)
+            else:
+                frame = AnimationFrame(self, i)
+                frame.data = data
+                print("(render)", frame)
+                frame.draw(saving=True, saveTo=folder, fmt=fmt, fill=self.fill)
         if purgeAfterEffects:
             print("furniture.animation >>> purging current After Effects memory...")
             purge_after_effects_memory()

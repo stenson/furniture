@@ -12,7 +12,7 @@ def add_importable(path):
     sys.path.insert(0, os.path.expanduser(path))
 
 
-def shallow_import(module):
+def reimport(module):
     """
     Import a module from a string, and also reload it;
     also, return it
@@ -55,4 +55,4 @@ if __name__ == "__main__":
     db.endDrawing()
 
     add_importable("~/Type/grafutils")
-    print(shallow_import("grafutils.text.lockup"))
+    print(reimport("furniture.animation"))
