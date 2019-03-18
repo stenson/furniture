@@ -29,6 +29,9 @@ class PreparedStateManager():
     def __enter__(self):
         db.save()
         for k, v in self.style.items():
+            db.fill(None)
+            db.stroke(None)
+            db.strokeWidth(1)
             getattr(db, k)(*v)
         return self
 

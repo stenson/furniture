@@ -300,6 +300,10 @@ class Point():
 
 
 class Rect():
+    def FromCenter(center, w, h):
+        x, y = center
+        return Rect((x - w/2, y - h/2, w, h))
+
     def __init__(self, rect):
         x, y, w, h = rect
         self.x = x
@@ -396,12 +400,12 @@ class Rect():
         return Rect(expand(self.rect(), amount, edge))
 
     def inset(self, dx, dy=None):
-        if not dy:
+        if dy == None:
             dy = dx
         return Rect(inset(self.rect(), dx, dy))
 
     def offset(self, dx, dy=None):
-        if not dy:
+        if dy == None:
             dy = dx
         return Rect(offset(self.rect(), dx, dy))
 

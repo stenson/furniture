@@ -115,20 +115,14 @@ class Animation():
         self.layers = layers
         self.fill = fill
 
-    def storyboard(self, data={}, frames=[0]):
-        def _storyboard(i):
+    def storyboard(self, *frames):
+        for i in frames:
             frame = AnimationFrame(self, i)
             print("(storyboard)", frame)
-            frame.data = data
+            #frame.data = data
             frame.draw(saving=False, saveTo=None, layers=self.layers, fill=self.fill)
-        try:
-            for i in frames:
-                _storyboard(i)
-        except TypeError:
-            i = frames
-            _storyboard(i)
 
-    def render(self, indicesSlice=None, start=0, end=None, data=None, purgeAfterEffects=False, folder=None, fmt=None):
+    def render(self, indicesSlice=None, start=0, end=None, data=None, purgeAfterEffects=False, folder=None, fmt=None, log=True):
         if not data and self.data:
             try:
                 with open(self.data, "r") as f:
@@ -156,7 +150,8 @@ class Animation():
             else:
                 frame = AnimationFrame(self, i)
                 frame.data = data
-                print("(render)", frame)
+                if log:
+                    print("(render)", frame)
                 frame.draw(saving=True, saveTo=folder, fmt=fmt, fill=self.fill)
         if purgeAfterEffects:
             print("furniture.animation >>> purging current After Effects memory...")

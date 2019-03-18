@@ -16,24 +16,40 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
+def is_valid_file(parser, arg):
+    if not os.path.exists(arg):
+        parser.error("The file %s does not exist!" % arg)
+    else:
+        return arg
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="furniture-renderer",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument("file", type=argparse.FileType('r'), default=sys.stdin)
+    parser.add_argument("file", type=lambda x: is_valid_file(parser, x), metavar="FILE")
     parser.add_argument("-s", "--slice", type=str, default="")
     parser.add_argument("-pae", "--purgeAfterEffects", type=str2bool, default=False)
     parser.add_argument("-f", "--folder", type=str, default="frames")
+    parser.add_argument("-l", "--layer", type=str, default=None)
+    parser.add_argument("-v", "--verbose", type=str2bool, default=True)
     args = parser.parse_args()
 
     sl = slice(*map(lambda x: int(x.strip()) if x.strip() else None, args.slice.split(':')))
 
-    lines = args.file.readlines()
+    src_dirname = os.path.realpath(os.path.dirname(args.file))
+    folder = src_dirname + "/" + args.folder
+    print(">>>>>>>>>>>>>>>>>>>>>>", src_dirname)
+
+    with open(args.file, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    
+    # act like the app
     lines.insert(0, "from drawBot import *\n")
     
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".py") as temp:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", encoding="utf-8") as temp:
         temp.write("".join(lines))
         temp.flush()
         mod = os.path.basename(temp.name)
@@ -48,7 +64,10 @@ def main():
             raise Exception("No furniture.animation.Animation object found in src file")
         
         # make the folder if it doesn’t exist
-        animation.render(indicesSlice=sl, folder=args.folder, purgeAfterEffects=args.purgeAfterEffects)
+        #folder = os.path.dirname(args.file) + "/" + args.folder
+        #print(folder)
+
+        animation.render(indicesSlice=sl, folder=folder, purgeAfterEffects=args.purgeAfterEffects, log=args.verbose)
 
         #sys.path.append(dirname)
         #importlib.import_module(mod)
