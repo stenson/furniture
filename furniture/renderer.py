@@ -4,6 +4,7 @@ import importlib
 from importlib.machinery import SourceFileLoader
 import os
 import sys
+import json
 from furniture.animation import Animation
 
 
@@ -29,19 +30,24 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
+    parser.add_argument("action", type=str)
     parser.add_argument("file", type=lambda x: is_valid_file(parser, x), metavar="FILE")
     parser.add_argument("-s", "--slice", type=str, default="")
     parser.add_argument("-pae", "--purgeAfterEffects", type=str2bool, default=False)
-    parser.add_argument("-f", "--folder", type=str, default="frames")
+    parser.add_argument("-f", "--folder", type=str, default=None)
     parser.add_argument("-l", "--layer", type=str, default=None)
     parser.add_argument("-v", "--verbose", type=str2bool, default=True)
     args = parser.parse_args()
 
     sl = slice(*map(lambda x: int(x.strip()) if x.strip() else None, args.slice.split(':')))
 
+    src_prefix = os.path.basename(args.file).replace(".py", "")
     src_dirname = os.path.realpath(os.path.dirname(args.file))
-    folder = src_dirname + "/" + args.folder
-    print(">>>>>>>>>>>>>>>>>>>>>>", src_dirname)
+    folder = args.folder
+    if folder == None:
+        folder = f"{src_dirname}/{src_prefix}_frames"
+        if not os.path.exists(folder):
+            os.mkdir(folder)
 
     with open(args.file, "r", encoding="utf-8") as f:
         lines = f.readlines()
@@ -62,19 +68,14 @@ def main():
         
         if not animation:
             raise Exception("No furniture.animation.Animation object found in src file")
-        
-        # make the folder if it doesn’t exist
-        #folder = os.path.dirname(args.file) + "/" + args.folder
-        #print(folder)
 
-        animation.render(indicesSlice=sl, folder=folder, purgeAfterEffects=args.purgeAfterEffects, log=args.verbose)
-
-        #sys.path.append(dirname)
-        #importlib.import_module(mod)
-        #print(mod, dirname)
-        #p = Popen(["osascript", "-e", script])
-        #stdout, stderr = p.communicate()
-        #return p.returncode, stdout, stderr
+        if args.action == "render":
+            animation.render(indicesSlice=sl, folder=folder, purgeAfterEffects=args.purgeAfterEffects, log=args.verbose)
+        elif args.action == "info":
+            print("-----")
+            info = dict(animation.__dict__)
+            del info["fn"]
+            print(json.dumps(info))
 
 if __name__ == "__main__":
     import sys
