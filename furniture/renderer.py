@@ -43,9 +43,14 @@ def main():
 
     src_prefix = os.path.basename(args.file).replace(".py", "")
     src_dirname = os.path.realpath(os.path.dirname(args.file))
+    src_path = os.path.realpath(args.file)
     folder = args.folder
     if folder == None:
         folder = f"{src_dirname}/{src_prefix}_frames"
+        if not os.path.exists(folder):
+            os.mkdir(folder)
+    else:
+        folder = os.path.realpath(folder)
         if not os.path.exists(folder):
             os.mkdir(folder)
 
@@ -54,6 +59,7 @@ def main():
     
     # act like the app
     lines.insert(0, "from drawBot import *\n")
+    lines.insert(1, "__file__ = '{}'\n".format(src_path))
     
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", encoding="utf-8") as temp:
         temp.write("".join(lines))
