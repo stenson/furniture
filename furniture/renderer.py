@@ -36,7 +36,7 @@ def main():
     parser.add_argument("-pae", "--purgeAfterEffects", type=str2bool, default=False)
     parser.add_argument("-f", "--folder", type=str, default=None)
     parser.add_argument("-l", "--layer", type=str, default=None)
-    parser.add_argument("-v", "--verbose", type=str2bool, default=True)
+    parser.add_argument("-v", "--verbose", type=str2bool, default=False)
     args = parser.parse_args()
 
     sl = slice(*map(lambda x: int(x.strip()) if x.strip() else None, args.slice.split(':')))
@@ -77,11 +77,11 @@ def main():
 
         if args.action == "render":
             animation.render(indicesSlice=sl, folder=folder, purgeAfterEffects=args.purgeAfterEffects, log=args.verbose)
-        elif args.action == "info":
-            print("-----")
-            info = dict(animation.__dict__)
-            del info["fn"]
-            print(json.dumps(info))
+        
+        print("-----")
+        info = dict(animation.__dict__)
+        del info["fn"]
+        print(json.dumps(info))
 
 if __name__ == "__main__":
     import sys
