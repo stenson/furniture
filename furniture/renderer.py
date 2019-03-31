@@ -33,10 +33,10 @@ def main():
     parser.add_argument("action", type=str)
     parser.add_argument("file", type=lambda x: is_valid_file(parser, x), metavar="FILE")
     parser.add_argument("-s", "--slice", type=str, default="")
-    parser.add_argument("-pae", "--purgeAfterEffects", type=str2bool, default=False)
     parser.add_argument("-f", "--folder", type=str, default=None)
     parser.add_argument("-l", "--layer", type=str, default=None)
-    parser.add_argument("-v", "--verbose", type=str2bool, default=False)
+    parser.add_argument("-v", "--verbose", type=str2bool, default=True)
+    parser.add_argument("-so", "--stdout", type=str, default=None)
     args = parser.parse_args()
 
     sl = slice(*map(lambda x: int(x.strip()) if x.strip() else None, args.slice.split(':')))
@@ -60,6 +60,15 @@ def main():
     # act like the app
     lines.insert(0, "from drawBot import *\n")
     lines.insert(1, "__file__ = '{}'\n".format(src_path))
+
+    if args.stdout:
+        logpath = os.path.realpath(args.stdout)
+        print(logpath)
+        if not os.path.exists(logpath):
+            with open(logpath, "w") as f:
+                pass
+        sys.stdout = open(logpath, "a")
+        sys.stderr = open(logpath, "a")
     
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", encoding="utf-8") as temp:
         temp.write("".join(lines))
@@ -76,12 +85,13 @@ def main():
             raise Exception("No furniture.animation.Animation object found in src file")
 
         if args.action == "render":
-            animation.render(indicesSlice=sl, folder=folder, purgeAfterEffects=args.purgeAfterEffects, log=args.verbose)
+            animation.render(indicesSlice=sl, folder=folder, log=args.verbose)
         
-        print("-----")
-        info = dict(animation.__dict__)
-        del info["fn"]
-        print(json.dumps(info))
+        if args.action == "info":
+            print("-----")
+            info = dict(animation.__dict__)
+            del info["fn"]
+            print(json.dumps(info))
 
 if __name__ == "__main__":
     import sys
