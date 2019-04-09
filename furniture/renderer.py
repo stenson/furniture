@@ -84,6 +84,11 @@ def main():
         if not animation:
             raise Exception("No furniture.animation.Animation object found in src file")
 
+        for layer in animation.layers:
+            subfolder = folder + "/" + layer
+            if not os.path.exists(subfolder):
+                os.mkdir(subfolder)
+
         if args.action == "render":
             animation.render(indicesSlice=sl, folder=folder, log=args.verbose)
         
