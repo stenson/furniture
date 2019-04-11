@@ -36,6 +36,7 @@ def main():
     parser.add_argument("-f", "--folder", type=str, default=None)
     parser.add_argument("-l", "--layer", type=str, default=None)
     parser.add_argument("-v", "--verbose", type=str2bool, default=True)
+    parser.add_argument("-a", "--audio", type=str2bool, default=True)
     parser.add_argument("-so", "--stdout", type=str, default=None)
     args = parser.parse_args()
 
@@ -90,7 +91,13 @@ def main():
                 os.mkdir(subfolder)
 
         if args.action == "render":
-            animation.render(indicesSlice=sl, folder=folder, log=args.verbose)
+            try:
+                animation.render(indicesSlice=sl, folder=folder, log=args.verbose)
+                if args.audio:
+                    os.system("say -v fred 'done'")
+            except Exception as e:
+                if args.audio:
+                    os.system("say -v fred 'fail'")
         
         if args.action == "info":
             print("-----")
