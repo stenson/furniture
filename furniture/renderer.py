@@ -32,7 +32,7 @@ def main():
 
     parser.add_argument("action", type=str)
     parser.add_argument("file", type=lambda x: is_valid_file(parser, x), metavar="FILE")
-    parser.add_argument("slice", type=str, default="")
+    parser.add_argument("-s", "--slice", type=str, default="")
     parser.add_argument("-f", "--folder", type=str, default=None)
     parser.add_argument("-l", "--layer", type=str, default=None)
     parser.add_argument("-v", "--verbose", type=str2bool, default=True)
