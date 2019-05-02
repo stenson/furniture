@@ -94,11 +94,11 @@ def main():
             try:
                 animation.render(indicesSlice=sl, folder=folder, log=args.verbose)
                 if args.audio:
-                    os.system("say -v fred 'done'")
+                    os.system("afplay /System/Library/Sounds/Pop.aiff ")
             except Exception as e:
                 print(e)
                 if args.audio:
-                    os.system("say -v fred 'fail'")
+                    os.system("afplay /System/Library/Sounds/Sosumi.aiff ")
         
         if args.action == "info":
             print("-----")
