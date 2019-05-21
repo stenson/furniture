@@ -5,8 +5,19 @@ import json
 import tempfile
 import datetime
 import drawBot as db
+import drawBot.context.baseContext
 from subprocess import Popen, PIPE
 from furniture.geometry import Rect, Edge
+
+try:
+    import defcon
+except:
+    pass
+
+class RichBezier():
+    def __init__(self):
+        self.fill = (0, 0, 0, 1)
+        self.bp = db.BezierPath()
 
 
 class AnimationFrame():
@@ -17,11 +28,13 @@ class AnimationFrame():
         self.time = self.i / self.animation.fps
         self.data = None
         self.layers = None
+        self.bps = {}
 
     def __repr__(self):
         return "<furniture.AnimationFrame {:04d}, {:04.2f}s, {:06.4f}%>".format(self.i, self.time, self.doneness)
 
     def draw(self, saving=False, saveTo=None, fmt="pdf", layers=[], fill=None):
+        savingToFont = isinstance(fmt, defcon.Font)
         if saving:
             db.newDrawing()
             self.saving = True
@@ -30,6 +43,11 @@ class AnimationFrame():
 
         db.newPage(*self.animation.dimensions)
         self.page = Rect.page()
+
+        self.bps = {}
+        for l in layers:
+            self.bps[l] = RichBezier()
+
         with db.savedState():
             if fill and not saveTo:
                 with db.savedState():
@@ -50,8 +68,23 @@ class AnimationFrame():
             db.textBox("{:07.2f}\n{:04d}\n{:%H:%M:%S}".format(
                 self.time, self.i, datetime.datetime.now()), box, align="center")
 
+        for k, bez in self.bps.items():
+            with db.savedState():
+                db.fill(*bez.fill)
+                db.drawPath(bez.bp)
+
         if saving:
-            db.saveImage(f"{saveTo}/{self.i}.{fmt}")
+            if savingToFont:
+                for k, bez in self.bps.items():
+                    g = defcon.Glyph()
+                    g.name = "frame_" + str(self.i)
+                    g.unicode = self.i + 48 # to get to 0
+                    g.width = self.animation.dimensions[0]
+                    bez.bp.drawToPen(g.getPen())
+                    fl = fmt.layers[k]
+                    fl.insertGlyph(g)
+            else:
+                db.saveImage(f"{saveTo}/{self.i}.{fmt}")
             db.endDrawing()
 
         self.saving = False
@@ -92,7 +125,8 @@ class Animation():
             fmt="pdf",
             data=None,
             layers=[],
-            fill=None):
+            fill=None,
+            name="Animation"):
         """
         - `fn` is a callback function that takes a single argument, `frame`
         - `fps` is frames-per-second
@@ -114,6 +148,7 @@ class Animation():
         self.data = data
         self.layers = layers
         self.fill = fill
+        self.name = name
 
     def storyboard(self, *frames):
         for i in frames:
@@ -139,6 +174,29 @@ class Animation():
         folder = folder if folder else self.folder
         fmt = fmt if fmt else self.fmt
 
+        if fmt == "ufo":
+            ufo_path = folder + ".ufo"
+            try:
+                fmt = defcon.Font(ufo_path)
+            except:
+                fmt = defcon.Font()
+                for l in self.layers:
+                    fmt.newLayer(l)
+                del fmt.layers["public.default"]
+                fmt.layers.defaultLayer = fmt.layers[self.layers[0]]
+                fmt.save(ufo_path)
+            
+            fmt.info.familyName = self.name
+            fmt.info.styleName = "Regular"
+            fmt.info.versionMajor = 1
+            fmt.info.versionMinor = 0
+            fmt.info.descender = 0
+            fmt.info.unitsPerEm = 1000 # or self.dimensions[0] ?
+            fmt.info.capHeight = self.dimensions[1]
+            fmt.info.ascender = self.dimensions[1]
+            fmt.info.xHeight = int(self.dimensions[1] / 2)
+            fmt.save()
+
         for i in indices:
             if len(self.layers) > 0:
                 for layer in self.layers:
@@ -156,11 +214,14 @@ class Animation():
         if purgeAfterEffects:
             print("furniture.animation >>> purging current After Effects memory...")
             purge_after_effects_memory()
+        
+        if isinstance(fmt, defcon.Font):
+            fmt.save()
 
 
 if __name__ == "__main__":
     def draw(frame):
         pass
-    animation = Animation(draw, length=10, fps=30, dimensions=(1000, 1000))
-    animation.storyboard(frames=0)
-    purge_after_effects_memory()
+    
+    animation = Animation(draw, length=10, fps=30, dimensions=(1000, 1000), fmt="ufo", layers=["fg"])
+    animation.storyboard(0)

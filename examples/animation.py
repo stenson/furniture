@@ -5,4 +5,4 @@ def draw(frame):
     rect(*frame.page)
 
 animation = Animation(draw, 60)
-animation.storyboard(frames=(0,))
+animation.storyboard(0)
