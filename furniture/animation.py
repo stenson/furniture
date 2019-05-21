@@ -124,7 +124,7 @@ class Animation():
             folder="frames",
             fmt="pdf",
             data=None,
-            layers=[],
+            layers=["default"],
             fill=None,
             name="Animation"):
         """
@@ -173,44 +173,40 @@ class Animation():
 
         folder = folder if folder else self.folder
         fmt = fmt if fmt else self.fmt
+        ufo_folder = folder + "_ufos"
+        saving_to_font = fmt == "ufo"
 
-        if fmt == "ufo":
-            ufo_path = folder + ".ufo"
-            try:
-                fmt = defcon.Font(ufo_path)
-            except:
-                fmt = defcon.Font()
-                for l in self.layers:
-                    fmt.newLayer(l)
-                del fmt.layers["public.default"]
-                fmt.layers.defaultLayer = fmt.layers[self.layers[0]]
-                fmt.save(ufo_path)
+        
+        for layer in self.layers:
+            # a ufo for this layer
+            if saving_to_font:
+                ufo_path = ufo_folder + "/" + self.name + "_" + layer + ".ufo"
+                try:
+                    fmt = defcon.Font(ufo_path)
+                except:
+                    fmt = defcon.Font()
+                    fmt.newLayer(layer)
+                    del fmt.layers["public.default"]
+                    fmt.layers.defaultLayer = fmt.layers[layer]
+                    fmt.save(ufo_path)
+                fmt.info.familyName = self.name
+                fmt.info.styleName = layer
+                fmt.info.versionMajor = 1
+                fmt.info.versionMinor = 0
+                fmt.info.descender = 0
+                fmt.info.unitsPerEm = 1000 # or self.dimensions[0] ?
+                fmt.info.capHeight = self.dimensions[1]
+                fmt.info.ascender = self.dimensions[1]
+                fmt.info.xHeight = int(self.dimensions[1] / 2)
+                fmt.save()
             
-            fmt.info.familyName = self.name
-            fmt.info.styleName = "Regular"
-            fmt.info.versionMajor = 1
-            fmt.info.versionMinor = 0
-            fmt.info.descender = 0
-            fmt.info.unitsPerEm = 1000 # or self.dimensions[0] ?
-            fmt.info.capHeight = self.dimensions[1]
-            fmt.info.ascender = self.dimensions[1]
-            fmt.info.xHeight = int(self.dimensions[1] / 2)
-            fmt.save()
-
-        for i in indices:
-            if len(self.layers) > 0:
-                for layer in self.layers:
-                    frame = AnimationFrame(self, i)
-                    frame.data = data
-                    print(f"(render:layer:{layer})", frame)
-                    _folder = folder + "/" + layer
-                    frame.draw(saving=True, saveTo=_folder, fmt=fmt, layers=[layer], fill=self.fill)
-            else:
+            for i in indices:
                 frame = AnimationFrame(self, i)
                 frame.data = data
-                if log:
-                    print("(render)", frame)
-                frame.draw(saving=True, saveTo=folder, fmt=fmt, fill=self.fill)
+                print(f"(render:layer:{layer})", frame)
+                _folder = folder + "/" + layer
+                frame.draw(saving=True, saveTo=_folder, fmt=fmt, layers=[layer], fill=self.fill)
+            
         if purgeAfterEffects:
             print("furniture.animation >>> purging current After Effects memory...")
             purge_after_effects_memory()

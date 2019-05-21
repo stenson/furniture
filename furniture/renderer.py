@@ -7,6 +7,11 @@ import sys
 import json
 from furniture.animation import Animation
 
+try:
+    from fontTools.misc.cliTools import makeOutputFileName
+except:
+    print("fontTools not installed")
+    pass
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -37,6 +42,7 @@ def main():
     parser.add_argument("-l", "--layer", type=str, default=None)
     parser.add_argument("-v", "--verbose", type=str2bool, default=True)
     parser.add_argument("-a", "--audio", type=str2bool, default=True)
+    parser.add_argument("-c", "--compile", type=str, default=None)
     parser.add_argument("-so", "--stdout", type=str, default=None)
     args = parser.parse_args()
 
@@ -86,15 +92,38 @@ def main():
             raise Exception("No furniture.animation.Animation object found in src file")
 
         for layer in animation.layers:
-            subfolder = folder + "/" + layer
-            if not os.path.exists(subfolder):
-                os.mkdir(subfolder)
+            if animation.fmt != "ufo":
+                subfolder = folder + "/" + layer
+                if not os.path.exists(subfolder):
+                    os.mkdir(subfolder)
 
         if args.action == "render":
             try:
+                if animation.fmt == "ufo":
+                    ufo_folder = folder + "_ufos"
+                    if not os.path.exists(ufo_folder):
+                        os.mkdir(ufo_folder)
+
                 animation.render(indicesSlice=sl, folder=folder, log=args.verbose)
                 if args.audio:
                     os.system("afplay /System/Library/Sounds/Pop.aiff ")
+                
+                if args.compile:
+                    if animation.fmt == "ufo":
+                        ttf_folder = folder + "_ttfs"
+                        if not os.path.exists(ttf_folder):
+                            os.mkdir(ttf_folder)
+                        # needs to support layers
+                        for layer in animation.layers:
+                            ttf_name = makeOutputFileName(ttf_folder + "/" + animation.name + "_" + layer, extension=".ttf")
+                            ufo_path = ufo_folder + "/" + animation.name + "_" + layer + ".ufo"
+                            fontmake_cmd = f"fontmake --output-path {ttf_name} -o ttf -u {ufo_path}"
+                            print(fontmake_cmd)
+                            os.system(fontmake_cmd)
+                        os.system("afplay /System/Library/Sounds/Bottle.aiff ")
+                    else:
+                        print("Compliation not supported")
+                        os.system("afplay /System/Library/Sounds/Basso.aiff ")
             except Exception as e:
                 print(e)
                 if args.audio:
