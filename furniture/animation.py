@@ -6,7 +6,6 @@ import tempfile
 import datetime
 import drawBot as db
 import drawBot.context.baseContext
-from subprocess import Popen, PIPE
 from furniture.geometry import Rect, Edge
 
 try:
@@ -81,37 +80,12 @@ class AnimationFrame():
                     g.unicode = self.i + 48 # to get to 0
                     g.width = self.animation.dimensions[0]
                     bez.bp.drawToPen(g.getPen())
-                    fl = fmt.layers[k]
-                    fl.insertGlyph(g)
+                    fmt.insertGlyph(g)
             else:
                 db.saveImage(f"{saveTo}/{self.i}.{fmt}")
             db.endDrawing()
 
         self.saving = False
-
-
-AFTER_EFFECTS_PURGE_JSX = """
-//@target aftereffects
-(function () {
-    var comp = app.project.activeItem;
-    comp.time = 0;
-    $.sleep(20);
-    app.purge(PurgeTarget.IMAGE_CACHES);
-    alert("purged");
-})();
-"""
-
-
-def purge_after_effects_memory():
-    with tempfile.NamedTemporaryFile(mode="w") as temp:
-        temp.write(AFTER_EFFECTS_PURGE_JSX)
-        temp.flush()
-        script = """
-            tell application id "com.adobe.aftereffects" to activate DoScriptFile "{}"
-        """.format(temp.name)
-        p = Popen(["osascript", "-e", script])
-        stdout, stderr = p.communicate()
-        return p.returncode, stdout, stderr
 
 
 class Animation():
@@ -157,7 +131,7 @@ class Animation():
             #frame.data = data
             frame.draw(saving=False, saveTo=None, layers=self.layers, fill=self.fill)
 
-    def render(self, indicesSlice=None, start=0, end=None, data=None, purgeAfterEffects=False, folder=None, fmt=None, log=True):
+    def render(self, indicesSlice=None, start=0, end=None, data=None, folder=None, fmt=None, log=True):
         if not data and self.data:
             try:
                 with open(self.data, "r") as f:
@@ -173,9 +147,8 @@ class Animation():
 
         folder = folder if folder else self.folder
         fmt = fmt if fmt else self.fmt
-        ufo_folder = folder + "_ufos"
+        ufo_folder = folder + "/ufos"
         saving_to_font = fmt == "ufo"
-
         
         for layer in self.layers:
             # a ufo for this layer
@@ -185,9 +158,6 @@ class Animation():
                     fmt = defcon.Font(ufo_path)
                 except:
                     fmt = defcon.Font()
-                    fmt.newLayer(layer)
-                    del fmt.layers["public.default"]
-                    fmt.layers.defaultLayer = fmt.layers[layer]
                     fmt.save(ufo_path)
                 fmt.info.familyName = self.name
                 fmt.info.styleName = layer
@@ -207,12 +177,8 @@ class Animation():
                 _folder = folder + "/" + layer
                 frame.draw(saving=True, saveTo=_folder, fmt=fmt, layers=[layer], fill=self.fill)
             
-        if purgeAfterEffects:
-            print("furniture.animation >>> purging current After Effects memory...")
-            purge_after_effects_memory()
-        
-        if isinstance(fmt, defcon.Font):
-            fmt.save()
+            if isinstance(fmt, defcon.Font):
+                fmt.save()
 
 
 if __name__ == "__main__":

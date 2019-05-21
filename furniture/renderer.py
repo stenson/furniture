@@ -100,7 +100,7 @@ def main():
         if args.action == "render":
             try:
                 if animation.fmt == "ufo":
-                    ufo_folder = folder + "_ufos"
+                    ufo_folder = folder + "/ufos"
                     if not os.path.exists(ufo_folder):
                         os.mkdir(ufo_folder)
 
@@ -110,7 +110,7 @@ def main():
                 
                 if args.compile:
                     if animation.fmt == "ufo":
-                        ttf_folder = folder + "_ttfs"
+                        ttf_folder = folder + "/ttfs"
                         if not os.path.exists(ttf_folder):
                             os.mkdir(ttf_folder)
                         # needs to support layers
@@ -125,7 +125,8 @@ def main():
                         print("Compliation not supported")
                         os.system("afplay /System/Library/Sounds/Basso.aiff ")
             except Exception as e:
-                print(e)
+                import traceback
+                traceback.print_exc()
                 if args.audio:
                     os.system("afplay /System/Library/Sounds/Sosumi.aiff ")
         

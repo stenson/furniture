@@ -5,4 +5,4 @@ dist
 furniture.egg-info
 __pycache__
 
-examples/ufo_frames_*
+examples/ufo_frames
