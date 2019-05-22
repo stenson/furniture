@@ -124,7 +124,9 @@ class Animation():
         self.fill = fill
         self.name = name
 
-    def storyboard(self, *frames):
+    def storyboard(self, *frames, **kwargs):
+        if "frames" in kwargs:
+            frames = kwargs["frames"]
         for i in frames:
             frame = AnimationFrame(self, i)
             print("(storyboard)", frame)

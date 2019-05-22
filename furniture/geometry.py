@@ -20,24 +20,24 @@ class Edge(Enum):
 
 
 def txt_to_edge(txt):
-    if isinstance(txt, Edge):
-        return txt
-
-    txt = txt.lower()
-    if txt == "maxy":
-        return Edge.MaxY
-    elif txt == "maxx":
-        return Edge.MaxX
-    elif txt == "miny":
-        return Edge.MinY
-    elif txt == "minx":
-        return Edge.MinX
-    elif txt == "centery":
-        return Edge.CenterY
-    elif txt == "centerx":
-        return Edge.CenterX
+    if isinstance(txt, str):
+        txt = txt.lower()
+        if txt == "maxy":
+            return Edge.MaxY
+        elif txt == "maxx":
+            return Edge.MaxX
+        elif txt == "miny":
+            return Edge.MinY
+        elif txt == "minx":
+            return Edge.MinX
+        elif txt == "centery":
+            return Edge.CenterY
+        elif txt == "centerx":
+            return Edge.CenterX
+        else:
+            return None
     else:
-        return None
+        return txt
 
 
 def centered_square(rect):
@@ -282,6 +282,14 @@ class Point():
 
     def xy(self):
         return self.x, self.y
+    
+    def flip(self, frame):
+        return Point((self.x, frame.h - self.y))
+    
+    def flipSelf(self, frame):
+        x, y = self.flip(frame)
+        self.x = x
+        self.y = y
 
     def __repr__(self):
         return "<furn-Point" + str(self.xy()) + ">"
@@ -427,6 +435,16 @@ class Rect():
 
     def center(self):
         return centerpoint(self.rect())
+    
+    def flip(self, frame):
+        return Rect([self.x, frame.h - self.y - self.h, self.w, self.h])
+    
+    def flipSelf(self, frame):
+        x, y, w, h = self.flip(frame)
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
 
     def point(self, eh, ev=Edge.MinX):
         ev = txt_to_edge(ev)
@@ -463,3 +481,6 @@ class Rect():
                 py = self.y + self.h/2
 
             return Point((px, py))
+
+if __name__ == "__main__":
+    print(Rect([50, 50, 500, 500]).flip(Rect([0, 0, 1000, 1000])))

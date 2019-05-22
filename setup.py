@@ -6,7 +6,7 @@ long_description = """
 
 setuptools.setup(
     name="furniture",
-    version="0.1.1",
+    version="0.2.0",
     author="Rob Stenson",
     author_email="rob.stenson@gmail.com",
     description="Typesetting and layout utilities for drawing and animating in DrawBot",
