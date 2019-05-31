@@ -188,7 +188,6 @@ class StyledString():
             self.axes[axis.axisTag] = axis
             self.variations[axis.axisTag] = axis.defaultValue
         for k, v in self.normalizeVariations(variations).items():
-            print(k, v)
             self.variations[k] = v
     
     def normalizeVariations(self, variations):
@@ -214,7 +213,7 @@ class StyledString():
         return variations
     
     def getGlyphFrames(self):
-        return self.harfbuzz.setText(axes=self.variations, txt=self.text, tracking=self.tracking*(1000/self.fontSize))
+        return self.harfbuzz.setText(axes=self.variations, features=self.features, txt=self.text, tracking=self.tracking*(1000/self.fontSize))
     
     def width(self): # size?
         return self.getGlyphFrames()[-1].frame.point("SE").x * (self.fontSize/1000)
@@ -289,12 +288,15 @@ if __name__ == "__main__":
             print("----------")
     
     def test_styled_string():
-        ss = StyledString("Compressions".upper(),
+        fill(0)
+        rect(*Rect.page())
+        
+        ss = StyledString("COMPRESSION".upper(),
             fontFile=f"{fp}/ObviouslyVariable.ttf",
-            fontSize=65,
-            variations=dict(wdth=1.0, wght=0.15),
-            features=dict(ss01=True),
-            tracking=20)
+            fontSize=55,
+            variations=dict(wdth=1.0, wght=0.0),
+            features=dict(ss01=True), # not working
+            tracking=200)
         count = 30
         for x in range(count):
             w = (pow(1-x/count, 2))*1000
