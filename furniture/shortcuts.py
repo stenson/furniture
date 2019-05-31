@@ -1,8 +1,11 @@
 import sys
 import os
 import importlib
-from drawBot import savedState
-import drawBot as db
+try:
+    from drawBot import savedState
+    import drawBot as db
+except:
+    pass
 
 
 def add_importable(path):
