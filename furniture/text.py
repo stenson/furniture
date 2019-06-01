@@ -1,5 +1,5 @@
 import freetype
-#print(freetype.__file__)
+import freetype.raw
 
 from collections import OrderedDict
 from freetype.raw import *
@@ -215,7 +215,6 @@ class StyledString():
         # self.harfbuzz.setFeatures ???
         for frame in self.getGlyphFrames():
             fr.setGlyph(frame.gid)
-            fill(0, 0.5, 1, 0.5)
             s = self.fontSize/1000
             tp_scale = TransformPen(out_pen, (s, 0, 0, s, 0, 0))
             tp_transform = TransformPen(tp_scale, (1, 0, 0, 1, frame.frame.x, frame.frame.y))
@@ -223,6 +222,14 @@ class StyledString():
                 fr.drawTTOutlineToPen(tp_transform)
             else:
                 fr.drawOutlineToPen(tp_transform, raiseCubics=True)
+    
+    def asGlyph(self, removeOverlap=True):
+        bg = BooleanGlyph()
+        self.drawToPen(bg.getPen())
+        if removeOverlap:
+            return bg.removeOverlap()
+        else:
+            return bg
 
 if __name__ == "__main__":
     import os
@@ -261,9 +268,9 @@ if __name__ == "__main__":
         
         ss = StyledString("COMPRESSION".upper(),
             fontFile=f"{fp}/ObviouslyVariable.ttf",
-            fontSize=55,
-            variations=dict(wdth=1.0, wght=0.2),
-            features=dict(ss01=True),
+            fontSize=50,
+            variations=dict(wdth=1.0, wght=0.9),
+            features=dict(ss01=False),
             tracking=30)
         count = 22
         translate(0, 6)
@@ -276,11 +283,10 @@ if __name__ == "__main__":
             if False:
                 print("AFTER wdth", ss.variations.get("wdth"),
                     "width", ss.width(), ss.tracking, ss.tries)
-            g = Glyph()
-            ss.drawToPen(g.getPen())
             fill(random(), 0.5, 1, 1)
-            drawBezier(g)
-            translate(0, ss.fontSize-10)
+            fill(1)
+            drawBezier(ss.asGlyph(removeOverlap=False))
+            translate(30, ss.fontSize-5)
             if False: # also draw a coretext string?
                 fill(random(), 0.5, 1, 0.15)
                 bp = BezierPath()
@@ -289,7 +295,7 @@ if __name__ == "__main__":
                 drawPath(bp)
     
     def test_styled_string(t, f):
-        size(3000, 1000)
+        newPage(1000, 400)
         fill(0.95)
         rect(*Rect.page())
         #translate(200, 200)
@@ -298,19 +304,17 @@ if __name__ == "__main__":
                 scale(4)
                 translate(-10, -7)
                 image("~/Desktop/palt.png", (0, -300))
-        translate(200, 400)
+        translate(50, 150)
         ss = StyledString(t,
             fontFile=f,
-            fontSize=400,
+            fontSize=200,
             features=dict(palt=True),
             tracking=0)
-        bg = BooleanGlyph()
-        ss.drawToPen(bg.getPen())
-        bg = bg.removeOverlap()
+        
         stroke(0, 1, 0.5, 0.5)
         strokeWidth(10)
         fill(1)
-        drawBezier(bg)
+        drawBezier(ss.asGlyph())
         if True:
             bp = BezierPath()
             ss.drawToPen(bp, useTTFont=True)
@@ -328,20 +332,24 @@ if __name__ == "__main__":
             bp.removeOverlap()
             drawPath(bp)
     
-    test_styled_fitting()
+    if False:
+        test_styled_fitting()
     
-    t = "ٱلْـحَـمْـدُ للهِ‎"
-    #t = "رَقَمِيّ"
-    #t = "براندو عربي أسود"
-    #t = "نستعلیق"
-    #t = "ن"
-    f = "~/Type/fonts/fonts/BrandoArabic-Black.otf"
-    f = "~/Type/fonts/fonts/29LTAzal-Display.ttf"
+    if True:
+        t = "ٱلْـحَـمْـدُ للهِ‎"
+        t = "الحمراء"
+        #t = "رَقَمِيّ"
+        #t = "ن"
+        f = "~/Type/fonts/fonts/BrandoArabic-Black.otf"
+        #f = "~/Type/fonts/fonts/29LTAzal-Display.ttf"
+        test_styled_string(t, f)
     
-    #t = "Beastly"
-    #f = f"{fp}/Beastly-72Point.otf"
-    #f = "~/Type/fonts/fonts/framboisier-bolditalic.ttf"
+        t = "Beastly"
+        f = f"{fp}/Beastly-72Point.otf"
     
-    #t = "フィルター"
-    #f = "~/Library/Application Support/Adobe/CoreSync/plugins/livetype/.r/.35716.otf"
-    #test_styled_string(t, f)
+        test_styled_string(t, f)
+    
+        t = "フィルター"
+        f = "~/Library/Application Support/Adobe/CoreSync/plugins/livetype/.r/.35716.otf"
+        test_styled_string(t, f)
+        
