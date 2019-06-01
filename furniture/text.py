@@ -18,7 +18,6 @@ class HarfbuzzFrame():
         self.info = info
         self.position = position
         self.frame = frame
-        print(self.position.__dir__()[:10])
 
     def __repr__(self):
         return f"HarfbuzzFrame: gid{self.gid}@{self.frame}"
@@ -51,25 +50,11 @@ class Harfbuzz():
             cluster = info.cluster
             x_advance = pos.x_advance
             x_offset = pos.x_offset
-            print(gid, x_offset)
             y_offset = pos.y_offset
             frames.append(HarfbuzzFrame(info, pos, Rect((x+x_offset, y_offset, x_advance, 1000)))) # 100?
             x += x_advance + tracking
         return frames
 
-def ft_move_to(a, pen):
-    if len(pen.value) > 0:
-        pen.closePath()
-    pen.moveTo((a.x, a.y))
-
-def ft_line_to(a, pen):
-    pen.lineTo((a.x, a.y))
-
-def ft_conic_to(a, b, pen):
-    pen.qCurveTo((a.x, a.y), (b.x, b.y))
-
-def ft_cubic_to(a, b, c, pen):
-    pen.curveTo((a.x, a.y), (b.x, b.y), (c.x, c.y))
 
 class FreetypeReader():
     def __init__(self, font_path, scale=1000): # should pass in the ttfont not make it
@@ -103,7 +88,7 @@ class FreetypeReader():
     def drawOutlineToPen(self, pen, raiseCubics=True):
         outline = self.font.glyph.outline
         rp = RecordingPen()
-        self.font.glyph.outline.decompose(rp, move_to=ft_move_to, line_to=ft_line_to, conic_to=ft_conic_to, cubic_to=ft_cubic_to)
+        self.font.glyph.outline.decompose(rp, move_to=FreetypeReader.moveTo, line_to=FreetypeReader.lineTo, conic_to=FreetypeReader.conicTo, cubic_to=FreetypeReader.cubicTo)
         if len(rp.value) > 0:
             rp.closePath()
         replayRecording(rp.value, pen)
@@ -112,7 +97,36 @@ class FreetypeReader():
     def drawTTOutlineToPen(self, pen):
         glyph_name = self.ttfont.getGlyphName(self.glyph_id)
         g = self.ttfont.getGlyphSet()[glyph_name]
-        g.draw(pen)
+        try:
+            g.draw(pen)
+        except TypeError:
+            print("could not draw TT outline")
+            
+    
+    def moveTo(a, pen):
+        if len(pen.value) > 0:
+            pen.closePath()
+        pen.moveTo((a.x, a.y))
+
+    def lineTo(a, pen):
+        pen.lineTo((a.x, a.y))
+
+    def conicTo(a, b, pen):
+        #print(a.x, b.x)
+        #print(pen.value)
+        #pen.qCurveTo((a.x, a.y), (b.x, b.y))
+        if False:
+            pen.qCurveTo((a.x, a.y), (b.x, b.y))
+        else:
+            c0 = pen.value[-1][-1][-1]
+            c1 = (c0[0] + (2/3)*(a.x - c0[0]), c0[1] + (2/3)*(a.y - c0[1]))
+            c2 = (b.x + (2/3)*(a.x - b.x), b.y + (2/3)*(a.y - b.y))
+            c3 = (b.x, b.y)
+            pen.curveTo(c1, c2, c3)
+            #pen.lineTo(c3)
+
+    def cubicTo(a, b, c, pen):
+        pen.curveTo((a.x, a.y), (b.x, b.y), (c.x, c.y))
 
 class StyledString():
     def __init__(self,
@@ -312,24 +326,22 @@ if __name__ == "__main__":
             bp = BezierPath()
             bp.text(ss.formattedString(), (0, 0))
             bp.removeOverlap()
-            #bp.translate(0, 10)
-            #bp.translate(4, -74)
-            #drawBezierSkeleton(bp, labels=True)
             drawPath(bp)
     
-    #test_styled_fitting()
+    test_styled_fitting()
     
     t = "ٱلْـحَـمْـدُ للهِ‎"
     #t = "رَقَمِيّ"
-    t = "براندو عربي أسود"
+    #t = "براندو عربي أسود"
     #t = "نستعلیق"
     #t = "ن"
     f = "~/Type/fonts/fonts/BrandoArabic-Black.otf"
-    #f = "~/Type/fonts/fonts/29LTAzal-Display.ttf"
+    f = "~/Type/fonts/fonts/29LTAzal-Display.ttf"
     
     #t = "Beastly"
     #f = f"{fp}/Beastly-72Point.otf"
+    #f = "~/Type/fonts/fonts/framboisier-bolditalic.ttf"
     
-    t = "フィルター"
-    f = "~/Library/Application Support/Adobe/CoreSync/plugins/livetype/.r/.35716.otf"
-    test_styled_string(t, f)
+    #t = "フィルター"
+    #f = "~/Library/Application Support/Adobe/CoreSync/plugins/livetype/.r/.35716.otf"
+    #test_styled_string(t, f)
