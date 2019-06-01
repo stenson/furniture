@@ -3,6 +3,7 @@ import freetype
 
 from collections import OrderedDict
 from freetype.raw import *
+from booleanOperations.booleanGlyph import BooleanGlyph
 from fontParts.fontshell import RGlyph
 from fontTools.pens.transformPen import TransformPen
 from fontTools.pens.recordingPen import RecordingPen, replayRecording
@@ -17,6 +18,7 @@ class HarfbuzzFrame():
         self.info = info
         self.position = position
         self.frame = frame
+        print(self.position.__dir__()[:10])
 
     def __repr__(self):
         return f"HarfbuzzFrame: gid{self.gid}@{self.frame}"
@@ -49,8 +51,9 @@ class Harfbuzz():
             cluster = info.cluster
             x_advance = pos.x_advance
             x_offset = pos.x_offset
+            print(gid, x_offset)
             y_offset = pos.y_offset
-            frames.append(HarfbuzzFrame(info, pos, Rect((x, y_offset, x_advance, 100)))) # 100?
+            frames.append(HarfbuzzFrame(info, pos, Rect((x+x_offset, y_offset, x_advance, 1000)))) # 100?
             x += x_advance + tracking
         return frames
 
@@ -87,12 +90,11 @@ class FreetypeReader():
                 coord = FT_Fixed(axes[name] << 16)
                 coords.append(coord)
             ft_coords = (FT_Fixed * len(coords))(*coords)
-            flags = freetype.FT_LOAD_DEFAULT | freetype.FT_LOAD_NO_BITMAP
             freetype.FT_Set_Var_Design_Coordinates(self.font._FT_Face, len(ft_coords), ft_coords)
     
     def setGlyph(self, glyph_id):
         self.glyph_id = glyph_id
-        flags = freetype.FT_LOAD_DEFAULT | freetype.FT_LOAD_NO_BITMAP
+        flags = freetype.FT_LOAD_DEFAULT | freetype.FT_LOAD_NO_BITMAP | freetype.FT_LOAD_NO_SCALE | freetype.FT_LOAD_NO_HINTING
         if isinstance(glyph_id, int):
             self.font.load_glyph(glyph_id, flags)
         else:
@@ -102,7 +104,8 @@ class FreetypeReader():
         outline = self.font.glyph.outline
         rp = RecordingPen()
         self.font.glyph.outline.decompose(rp, move_to=ft_move_to, line_to=ft_line_to, conic_to=ft_conic_to, cubic_to=ft_cubic_to)
-        rp.closePath()
+        if len(rp.value) > 0:
+            rp.closePath()
         replayRecording(rp.value, pen)
         return
     
@@ -110,7 +113,6 @@ class FreetypeReader():
         glyph_name = self.ttfont.getGlyphName(self.glyph_id)
         g = self.ttfont.getGlyphSet()[glyph_name]
         g.draw(pen)
-        print("Glyph name", g)
 
 class StyledString():
     def __init__(self,
@@ -121,8 +123,8 @@ class StyledString():
             variations=dict(),
             features=dict()):
         self.text = text
-        self.fontFile = fontFile
-        self.harfbuzz = Harfbuzz(fontFile, upem=1000)
+        self.fontFile = os.path.expanduser(fontFile)
+        self.harfbuzz = Harfbuzz(self.fontFile, upem=1000)
         self.ttfont = TTFont(self.fontFile)
         self.fontSize = fontSize
         self.tracking = tracking
@@ -193,7 +195,7 @@ class StyledString():
         del feas["kern"]
         return FormattedString(self.text, font=self.fontFile, fontSize=self.fontSize, lineHeight=self.fontSize+2, tracking=self.tracking, fontVariations=self.variations, openTypeFeatures=feas)
     
-    def drawToPen(self, out_pen):
+    def drawToPen(self, out_pen, useTTFont=False):
         fr = FreetypeReader(self.fontFile, scale=1000)
         fr.setVariations(self.variations)
         # self.harfbuzz.setFeatures ???
@@ -201,16 +203,12 @@ class StyledString():
             fr.setGlyph(frame.gid)
             fill(0, 0.5, 1, 0.5)
             s = self.fontSize/1000
-            if False:
-                tp_scale = TransformPen(out_pen, (s, 0, 0, s, 0, 0))
-                tp_transform = TransformPen(tp_scale, (1, 0, 0, 1, frame.frame.x, frame.frame.y))
-                fr.drawOutlineToPen(tp_transform, raiseCubics=True)
+            tp_scale = TransformPen(out_pen, (s, 0, 0, s, 0, 0))
+            tp_transform = TransformPen(tp_scale, (1, 0, 0, 1, frame.frame.x, frame.frame.y))
+            if useTTFont:
+                fr.drawTTOutlineToPen(tp_transform)
             else:
-                fr.drawOutlineToPen(out_pen, raiseCubics=True)
-                bp = BezierPath()
-                fr.drawTTOutlineToPen(bp)
-                drawPath(bp)
-                #drawBezierSkeleton(bp)
+                fr.drawOutlineToPen(tp_transform, raiseCubics=True)
 
 if __name__ == "__main__":
     import os
@@ -277,29 +275,44 @@ if __name__ == "__main__":
                 drawPath(bp)
     
     def test_styled_string(t, f):
-        size(2000, 900)
+        size(3000, 1000)
+        fill(0.95)
+        rect(*Rect.page())
         #translate(200, 200)
-        #with savedState():
-        #    image("~/Desktop/hb.png", (0, 0))
-        translate(35, 124)
-        ss = StyledString(t.upper(),
+        if False:
+            with savedState():
+                scale(4)
+                translate(-10, -7)
+                image("~/Desktop/palt.png", (0, -300))
+        translate(200, 400)
+        ss = StyledString(t,
             fontFile=f,
-            fontSize=1000,
+            fontSize=400,
+            features=dict(palt=True),
             tracking=0)
-        g = Glyph()
-        ss.drawToPen(g.getPen())
-        fill(0, 0.5, 1, 0.5)
-        #translate(34, 125)
-        #drawBezier(g)
-        drawBezierSkeleton(g, labels=True)
-        if False: # also draw a coretext string?
+        bg = BooleanGlyph()
+        ss.drawToPen(bg.getPen())
+        bg = bg.removeOverlap()
+        stroke(0, 1, 0.5, 0.5)
+        strokeWidth(10)
+        fill(1)
+        drawBezier(bg)
+        if True:
+            bp = BezierPath()
+            ss.drawToPen(bp, useTTFont=True)
             fill(None)
-            stroke(1, 0, 0.5, 0.25)
-            strokeWidth(2)
+            stroke(0, 0.5, 1, 0.5)
+            strokeWidth(4)
+            bp.removeOverlap()
+            drawBezier(bp)
+        if True: # also draw a coretext string?
+            fill(None)
+            stroke(1, 0, 0.5)
+            strokeWidth(1)
             bp = BezierPath()
             bp.text(ss.formattedString(), (0, 0))
             bp.removeOverlap()
-            bp.translate(0, 10)
+            #bp.translate(0, 10)
             #bp.translate(4, -74)
             #drawBezierSkeleton(bp, labels=True)
             drawPath(bp)
@@ -307,14 +320,16 @@ if __name__ == "__main__":
     #test_styled_fitting()
     
     t = "ٱلْـحَـمْـدُ للهِ‎"
-    t = "نستعلیق"
+    #t = "رَقَمِيّ"
+    t = "براندو عربي أسود"
+    #t = "نستعلیق"
     #t = "ن"
-    #t = "﮲"
-    f = f"{fp}/AwamiNastaliq-Regular.ttf"
-    f = f"{fp}/29LTArapix.otf"
-    f = "/Users/robertstenson/Library/Application Support/.FCache/.R-5-17198-18-jaivlwiaijqk-jtiks.otf"
-    f = "/Users/robertstenson/Type/fonts/fonts/29LTAzal-Display.ttf"
+    f = "~/Type/fonts/fonts/BrandoArabic-Black.otf"
+    #f = "~/Type/fonts/fonts/29LTAzal-Display.ttf"
     
-    t = "I"
-    f = "/Users/robertstenson/Library/Fonts/Beastly-72Point.otf"
+    #t = "Beastly"
+    #f = f"{fp}/Beastly-72Point.otf"
+    
+    t = "フィルター"
+    f = "~/Library/Application Support/Adobe/CoreSync/plugins/livetype/.r/.35716.otf"
     test_styled_string(t, f)
