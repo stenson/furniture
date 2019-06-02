@@ -10,6 +10,7 @@ from fontTools.pens.recordingPen import RecordingPen, replayRecording
 from fontTools.ttLib import TTFont
 from furniture.geometry import Rect
 import uharfbuzz as hb
+import unicodedata
 
 
 class HarfbuzzFrame():
@@ -35,7 +36,7 @@ class Harfbuzz():
         self.font.scale = (self.upem, self.upem)
         hb.ot_font_set_funcs(self.font)
 
-    def setText(self, axes=dict(), features=dict(kern=True, liga=True), tracking=0, txt=""):
+    def setText(self, axes=dict(), features=dict(kern=True, liga=True), txt=""):
         buf = hb.Buffer()
         buf.add_str(txt)
         buf.guess_segment_properties()
@@ -52,7 +53,7 @@ class Harfbuzz():
             x_offset = pos.x_offset
             y_offset = pos.y_offset
             frames.append(HarfbuzzFrame(info, pos, Rect((x+x_offset, y_offset, x_advance, 1000)))) # 100?
-            x += x_advance + tracking
+            x += x_advance
         return frames
 
 
@@ -177,11 +178,43 @@ class StyledString():
                         v)
         return variations
     
+    def trackFrames(self, frames):
+        t = self.tracking*1/self.scale()
+        x_off = 0
+        has_kashida = False
+        try:
+            self.ttfont.getGlyphID("uni0640")
+            has_kashida = True
+        except KeyError:
+            has_kashida = False
+        # does font have kashida? # or just check direction?
+        if not has_kashida:
+            for idx, f in enumerate(frames):
+                f.frame = f.frame.offset(x_off, 0)
+                x_off += t
+        else:
+            for idx, frame in enumerate(frames):
+                glyph_name = self.ttfont.getGlyphName(frame.gid)
+                code = glyph_name.replace("uni", "")
+                u = unicodedata.name(chr(int(code, 16)))
+                if "MEDIAL" in u or "INITIAL" in u:
+                    print(u)
+                    f = 1.6
+                    if "MEEM" in u or "LAM" in u:
+                        f = 2.7
+                    x_off += t*f
+                frame.frame = frame.frame.offset(x_off, 0)
+        return frames
+    
     def getGlyphFrames(self):
-        return self.harfbuzz.setText(axes=self.variations, features=self.features, txt=self.text, tracking=self.tracking*(1000/self.fontSize))
+        frames = self.harfbuzz.setText(axes=self.variations, features=self.features, txt=self.text)
+        return self.trackFrames(frames)
     
     def width(self): # size?
-        return self.getGlyphFrames()[-1].frame.point("SE").x * (self.fontSize/1000)
+        return self.getGlyphFrames()[-1].frame.point("SE").x * self.scale()
+    
+    def scale(self):
+        return self.fontSize / 1000
     
     def fit(self, width, trackingLimit=0, variationLimits=dict()):
         self.normalizeVariations(variationLimits)
@@ -213,9 +246,10 @@ class StyledString():
         fr = FreetypeReader(self.fontFile, scale=1000)
         fr.setVariations(self.variations)
         # self.harfbuzz.setFeatures ???
-        for frame in self.getGlyphFrames():
+        self._frames = self.getGlyphFrames()
+        for frame in self._frames:
             fr.setGlyph(frame.gid)
-            s = self.fontSize/1000
+            s = self.scale()
             tp_scale = TransformPen(out_pen, (s, 0, 0, s, 0, 0))
             tp_transform = TransformPen(tp_scale, (1, 0, 0, 1, frame.frame.x, frame.frame.y))
             if useTTFont:
@@ -295,7 +329,7 @@ if __name__ == "__main__":
                 drawPath(bp)
     
     def test_styled_string(t, f):
-        newPage(1000, 400)
+        newPage(1500, 400)
         fill(0.95)
         rect(*Rect.page())
         #translate(200, 200)
@@ -309,19 +343,25 @@ if __name__ == "__main__":
             fontFile=f,
             fontSize=200,
             features=dict(palt=True),
-            tracking=0)
+            tracking=100)
         
         stroke(0, 1, 0.5, 0.5)
         strokeWidth(10)
         fill(1)
         drawBezier(ss.asGlyph())
-        if True:
+        with savedState():
+            for f in ss._frames:
+                fill(None)
+                strokeWidth(4)
+                stroke(1, 0.5, 0)
+                rect(*f.frame.scale(ss.scale()).inset(10, 0))
+        if False:
             bp = BezierPath()
             ss.drawToPen(bp, useTTFont=True)
             fill(None)
             stroke(0, 0.5, 1, 0.5)
             strokeWidth(4)
-            bp.removeOverlap()
+            #bp.removeOverlap()
             drawBezier(bp)
         if True: # also draw a coretext string?
             fill(None)
@@ -329,7 +369,7 @@ if __name__ == "__main__":
             strokeWidth(1)
             bp = BezierPath()
             bp.text(ss.formattedString(), (0, 0))
-            bp.removeOverlap()
+            #bp.removeOverlap()
             drawPath(bp)
     
     if False:
@@ -349,7 +389,7 @@ if __name__ == "__main__":
     
         test_styled_string(t, f)
     
-        t = "フィルター"
-        f = "~/Library/Application Support/Adobe/CoreSync/plugins/livetype/.r/.35716.otf"
-        test_styled_string(t, f)
+        #t = "フィルター"
+        #f = "~/Library/Application Support/Adobe/CoreSync/plugins/livetype/.r/.35716.otf"
+        #test_styled_string(t, f)
         
