@@ -203,9 +203,11 @@ class StyledString():
             fontFile=None,
             fontSize=12,
             tracking=0,
+            space=None,
             variations=dict(),
             increments=dict(),
-            features=dict()):
+            features=dict(),
+            align="C"):
         self.text = text
         self.fontFile = os.path.expanduser(fontFile)
         self.harfbuzz = Harfbuzz(self.fontFile, upem=1000, text=text)
@@ -217,9 +219,12 @@ class StyledString():
         self.offset = (0, 0)
         self.rect = None
         self.increments = increments
+        self.space = space
+        self.align = align
         
         self.axes = OrderedDict()
         self.variations = dict()
+        self.variationLimits = dict()
         try:
             fvar = self.ttfont['fvar']
         except KeyError:
@@ -228,8 +233,14 @@ class StyledString():
             for axis in fvar.axes:
                 self.axes[axis.axisTag] = axis
                 self.variations[axis.axisTag] = axis.defaultValue
-            for k, v in self.normalizeVariations(variations).items():
-                self.variations[k] = v
+                self.variationLimits[axis.axisTag] = axis.minValue
+        self.addVariations(variations)
+    
+    def addVariations(self, variations, limits=dict()):
+        for k, v in self.normalizeVariations(variations).items():
+            self.variations[k] = v
+        for k, v in self.normalizeVariations(limits).items():
+            self.variationLimits[k] = v
     
     def normalizeVariations(self, variations):
         if variations.get("scale") != None:
@@ -241,7 +252,9 @@ class StyledString():
             try:
                 axis = self.axes[k]
             except KeyError:
-                raise Exception("Invalid axis", self.fontFile, k)
+                print("Invalid axis", self.fontFile, k)
+                continue
+                #raise Exception("Invalid axis", self.fontFile, k)
             if v == "min":
                 variations[k] = axis.minValue
             elif v == "max":
@@ -271,19 +284,24 @@ class StyledString():
             has_kashida = True
         except KeyError:
             has_kashida = False
+        
+        glyph_names = []
+        for frame in frames:
+            glyph_name = self.ttfont.getGlyphName(frame.gid)
+            code = glyph_name.replace("uni", "")
+            try:
+                glyph_names.append(unicodedata.name(chr(int(code, 16))))
+            except:
+                glyph_names.append(code)
+        
         if not has_kashida:
             for idx, f in enumerate(frames):
+                gn = glyph_names[idx]
                 f.frame = f.frame.offset(x_off, 0)
                 x_off += t
+                if self.space and gn == "space":
+                    x_off += self.space
         else:
-            glyph_names = []
-            for frame in frames:
-                glyph_name = self.ttfont.getGlyphName(frame.gid)
-                code = glyph_name.replace("uni", "")
-                try:
-                    glyph_names.append(unicodedata.name(chr(int(code, 16))))
-                except:
-                    glyph_names.append(code)
             for idx, frame in enumerate(frames):
                 frame.frame = frame.frame.offset(x_off, 0)
                 try:
@@ -329,8 +347,7 @@ class StyledString():
     def scale(self):
         return self.fontSize / 1000
     
-    def fit(self, width, trackingLimit=0, variationLimits=dict()):
-        self.normalizeVariations(variationLimits)
+    def fit(self, width, trackingLimit=0):
         _vars = self.variations
         current_width = self.width()
         self.tries = 0
@@ -339,8 +356,8 @@ class StyledString():
                 if self.tracking > trackingLimit:
                     self.tracking -= self.increments.get("tracking", 0.25)
                 else:
-                    for k, v in variationLimits.items():
-                        if self.variations[k] > variationLimits[k]:
+                    for k, v in self.variationLimits.items():
+                        if self.variations[k] > self.variationLimits[k]:
                             self.variations[k] -= self.increments.get(k, 1)
                             break
                 self.tries += 1
@@ -353,9 +370,9 @@ class StyledString():
         if current_width > width:
             print("DOES NOT FIT", self.tries, self.text)
     
-    def place(self, rect, align, variationLimits=dict()):
+    def place(self, rect):
         self.rect = rect
-        self.fit(rect.w, variationLimits=variationLimits)
+        self.fit(rect.w)
         ch = self.ttfont["OS/2"].sCapHeight * self.scale()
         x = rect.w/2 - self.width()/2
         self.offset = (0, 0)
@@ -404,8 +421,23 @@ class StyledString():
             bg.draw(cbp)
             mnx, mny, mxx, mxy = cbp.bounds
             ch = self.ttfont["OS/2"].sCapHeight * self.scale()
-            xoff = -mnx + self.rect.x + self.rect.w/2 - (mxx-mnx)/2
-            yoff = self.rect.y + self.rect.h/2 - ch/2
+            y = self.align[0]
+            x = self.align[1] if len(self.align) > 1 else "C"
+            w = mxx-mnx
+
+            if x == "C":
+                xoff = -mnx + self.rect.x + self.rect.w/2 - w/2
+            elif x == "W":
+                xoff = self.rect.x
+            elif x == "E":
+                xoff = -mnx + self.rect.x + self.rect.w - w
+            
+            if y == "C":
+                yoff = self.rect.y + self.rect.h/2 - ch/2
+            elif y == "N":
+                yoff = self.rect.y + self.rect.h - ch
+            elif y == "S":
+                yoff = self.rect.y
             if False:
                 with savedState():
                     fill(1, 0, 0.5, 0.5)
@@ -481,7 +513,7 @@ if __name__ == "__main__":
             if False:
                 print("BEFORE wdth", ss.variations.get("wdth"),
                     "width", ss.width(), ss.tracking)
-            ss.fit(w, variationLimits=dict(wdth="min"))
+            ss.fit(w)
             if False:
                 print("AFTER wdth", ss.variations.get("wdth"),
                     "width", ss.width(), ss.tracking, ss.tries)
@@ -571,17 +603,17 @@ if __name__ == "__main__":
                             print(pts2)
                 except:
                     pass
-    if False:
+    if True:
         test_styled_fitting()
     
-    if True:
+    if False:
         t = "ٱلْـحَـمْـدُ للهِ‎"
         #t = "الحمراء"
         #t = "رَقَمِيّ"
         #t = "ن"
         f = "~/Type/fonts/fonts/BrandoArabic-Black.otf"
         #f = "~/Type/fonts/fonts/29LTAzal-Display.ttf"
-        #test_styled_string(t, f, dict())
+        test_styled_string(t, f, dict())
     
         t = "Beastly"
         f = f"{fp}/Beastly-72Point.otf"
@@ -589,7 +621,7 @@ if __name__ == "__main__":
         f = f"{fp}/framboisier-bolditalic.ttf"
         test_styled_string(t, f, dict())
     
-        t = "P"
+        t = "PROGRAM"
         f = f"{fp}/ObviouslyVariable.ttf"
         v = dict(wdth=151, wght=151)
         #f = f"{fp}/RoslindaleVariableItalicBeta-VF.ttf"
@@ -602,7 +634,7 @@ if __name__ == "__main__":
         #f = "~/Library/Application Support/Adobe/CoreSync/plugins/livetype/.r/.35716.otf"
         #test_styled_string(t, f)
     
-    if False:
+    if True:
         newPage(1000, 1000)
         g = RGlyph()
         gp = g.getPen()
@@ -624,7 +656,7 @@ if __name__ == "__main__":
         stroke(None)
         ss.drawBotDraw()
     
-    if False:
+    if True:
         import cProfile
         if False:
             p = cProfile.Profile()
@@ -643,23 +675,26 @@ if __name__ == "__main__":
                             rect(*box)
         
         grid(Rect.page(), color=(1, 0, 0.5, 0.35))
-        ss = StyledString("COMPRESSION".upper(),
+        ss = StyledString("YES — NO".upper(),
             fontFile="~/Library/Fonts/ObviouslyVariable.ttf",
-            fontSize=73,
+            fontSize=353,
             tracking=0,
+            space=120,
             features=dict(ss01=False),
             increments=dict(wdth=1),
-            variations=dict(wdth=1,wght=1,scale=True))
+            variations=dict(wdth=1,wght=1,scale=True),
+            align="CC",
+            )
         
-        r = Rect.page().take(900, "centerx").take(200, "centery")
+        r = Rect.page().take(900, "centerx").take(600, "centery")
         stroke(0, 0.5)
         strokeWidth(10)
         fill(None)
         rect(*r)
         strokeWidth(1)
         fill(0, 0.5, 1, 0.95)
-        ss.place(r.inset(0, 0), align="C", variationLimits=dict(wdth=151))
-        ss.drawBotDraw(removeOverlap=False)
+        ss.place(r.inset(0, 0))
+        ss.drawBotDraw(removeOverlap=True)
         
         if False:
             bp = BezierPath()
