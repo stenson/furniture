@@ -1,12 +1,14 @@
 import freetype
 import freetype.raw
 
+import math
 from collections import OrderedDict
 from freetype.raw import *
 from booleanOperations.booleanGlyph import BooleanGlyph
 from fontParts.fontshell import RGlyph
 from fontTools.pens.transformPen import TransformPen
 from fontTools.pens.recordingPen import RecordingPen, replayRecording
+from fontTools.misc.bezierTools import calcCubicArcLength, splitCubicAtT
 from fontTools.ttLib import TTFont
 from furniture.geometry import Rect
 import uharfbuzz as hb
@@ -113,9 +115,6 @@ class FreetypeReader():
         pen.lineTo((a.x, a.y))
 
     def conicTo(a, b, pen):
-        #print(a.x, b.x)
-        #print(pen.value)
-        #pen.qCurveTo((a.x, a.y), (b.x, b.y))
         if False:
             pen.qCurveTo((a.x, a.y), (b.x, b.y))
         else:
@@ -128,6 +127,69 @@ class FreetypeReader():
 
     def cubicTo(a, b, c, pen):
         pen.curveTo((a.x, a.y), (b.x, b.y), (c.x, c.y))
+
+
+class CurveCutter():    
+    def __init__(self, g, inc=0.0015):
+        self.pen = RecordingPen()
+        g.draw(self.pen)
+        self.inc = inc
+        self.length = self.calcCurveLength()
+    
+    def calcCurveLength(self):
+        length = 0
+        for i, (t, pts) in enumerate(self.pen.value):
+            if t == "curveTo":
+                p1, p2, p3 = pts
+                p0 = self.pen.value[i-1][-1][-1]
+                length += calcCubicArcLength(p0, p1, p2, p3)
+            elif t == "lineTo":
+                pass # todo
+        return length
+
+    def subsegment(self, start=None, end=None):
+        inc = self.inc
+        length = self.length
+        ended = False
+        _length = 0
+        out = []
+        for i, (t, pts) in enumerate(self.pen.value):
+            if t == "curveTo":
+                p1, p2, p3 = pts
+                p0 = self.pen.value[i-1][-1][-1]
+                length_arc = calcCubicArcLength(p0, p1, p2, p3)
+                if _length + length_arc < end:
+                    _length += length_arc
+                else:
+                    t = inc
+                    tries = 0
+                    while not ended:
+                        a, b = splitCubicAtT(p0, p1, p2, p3, t)
+                        length_a = calcCubicArcLength(*a)
+                        if _length + length_a > end:
+                            ended = True
+                            out.append(("curveTo", a[1:]))
+                        else:
+                            t += inc
+                            tries += 1
+            if t == "lineTo":
+                pass # TODO
+            if not ended:
+                out.append((t, pts))
+    
+        if out[-1][0] != "endPath":
+            out.append(("endPath",[]))
+        return out
+
+    def subsegmentPoint(self, start=0, end=1):
+        inc = self.inc
+        subsegment = self.subsegment(start=start, end=end)
+        try:
+            t, (a, b, c) = subsegment[-2]
+            tangent = math.degrees(math.atan2(c[1] - b[1], c[0] - b[0]) + math.pi*.5)
+            return c, tangent
+        except ValueError:
+            return None, None
 
 class StyledString():
     def __init__(self,
@@ -212,7 +274,6 @@ class StyledString():
                     u_1 = glyph_names[idx+1]
                     if self.vowelMark(u_1):
                         u_1 = glyph_names[idx+2]
-                    print(u_1)
                     if "MEDIAL" in u_1 or "INITIAL" in u_1:
                         f = 1.6
                         if "MEEM" in u_1 or "LAM" in u_1:
@@ -280,6 +341,8 @@ class StyledString():
             return bg.removeOverlap()
         else:
             return bg
+    
+    
 
 if __name__ == "__main__":
     import os
@@ -294,7 +357,6 @@ if __name__ == "__main__":
         except:
             bp_or_g.draw(bp)
         return bp
-
 
     def drawBezier(bp_or_g):
         bp = normalizeBezier(bp_or_g)
@@ -373,7 +435,7 @@ if __name__ == "__main__":
             fontFile=f,
             fontSize=200,
             features=dict(palt=True),
-            tracking=100)
+            tracking=0)
         
         stroke(0, 1, 0.5, 0.5)
         strokeWidth(10)
@@ -405,7 +467,7 @@ if __name__ == "__main__":
     if False:
         test_styled_fitting()
     
-    if True:
+    if False:
         t = "ٱلْـحَـمْـدُ للهِ‎"
         #t = "الحمراء"
         #t = "رَقَمِيّ"
@@ -416,9 +478,22 @@ if __name__ == "__main__":
     
         t = "Beastly"
         f = f"{fp}/Beastly-72Point.otf"
-        #test_styled_string(t, f)
+        test_styled_string(t, f)
     
         #t = "フィルター"
         #f = "~/Library/Application Support/Adobe/CoreSync/plugins/livetype/.r/.35716.otf"
         #test_styled_string(t, f)
+    
+    if True:
+        g = RGlyph()
+        gp = g.getPen()
+        gp.moveTo((100, 100))
+        fill(None)
+        stroke(1, 0, 0.5)
+        gp.curveTo((540, 250), (430, 750), (900, 900))
+        gp.endPath()
+        cc = CurveCutter(g)
+        p, t = cc.subsegmentPoint(end=500)
+        rect(p[0], p[1], 10, 10)
+        drawBezier(g)
         
