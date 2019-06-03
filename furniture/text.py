@@ -29,25 +29,30 @@ class HarfbuzzFrame():
 
 
 class Harfbuzz():
-    def __init__(self, font_path, upem=72):
+    def __init__(self, font_path, upem=72, text=""):
         with open(font_path, 'rb') as fontfile:
             fontdata = fontfile.read()
         self.fontPath = font_path
         self.face = hb.Face(fontdata)
         self.font = hb.Font(self.face)
+        self.text = text
         self.upem = self.face.upem
         self.upem = upem
         self.font.scale = (self.upem, self.upem)
+        self.buf = hb.Buffer()
+        self.buf.add_str(text)
+        self.buf.guess_segment_properties()
         hb.ot_font_set_funcs(self.font)
 
-    def setText(self, axes=dict(), features=dict(kern=True, liga=True), txt=""):
-        buf = hb.Buffer()
-        buf.add_str(txt)
-        buf.guess_segment_properties()
+    def getFrames(self, axes=dict(), features=dict(kern=True, liga=True)):
+        self.buf = hb.Buffer()
+        self.buf.add_str(self.text)
+        self.buf.guess_segment_properties()
         self.font.set_variations(axes)
-        hb.shape(self.font, buf, features)
-        infos = buf.glyph_infos
-        positions = buf.glyph_positions
+        
+        hb.shape(self.font, self.buf, features)
+        infos = self.buf.glyph_infos
+        positions = self.buf.glyph_positions
         frames = []
         x = 0
         for info, pos in zip(infos, positions):
@@ -199,10 +204,11 @@ class StyledString():
             fontSize=12,
             tracking=0,
             variations=dict(),
+            increments=dict(),
             features=dict()):
         self.text = text
         self.fontFile = os.path.expanduser(fontFile)
-        self.harfbuzz = Harfbuzz(self.fontFile, upem=1000)
+        self.harfbuzz = Harfbuzz(self.fontFile, upem=1000, text=text)
         self.ttfont = TTFont(self.fontFile)
         self.fontSize = fontSize
         self.tracking = tracking
@@ -210,6 +216,7 @@ class StyledString():
         self.path = None
         self.offset = (0, 0)
         self.rect = None
+        self.increments = increments
         
         self.axes = OrderedDict()
         self.variations = dict()
@@ -311,7 +318,7 @@ class StyledString():
         return frames[0:self.limit]
     
     def getGlyphFrames(self):
-        frames = self.harfbuzz.setText(axes=self.variations, features=self.features, txt=self.text)
+        frames = self.harfbuzz.getFrames(axes=self.variations, features=self.features)
         for f in frames:
             f.frame = f.frame.scale(self.scale())
         return self.adjustFramesForPath(self.trackFrames(frames))
@@ -330,11 +337,11 @@ class StyledString():
         if current_width > width: # need to shrink
             while self.tries < 1000 and current_width > width:
                 if self.tracking > trackingLimit:
-                    self.tracking -= 0.25
+                    self.tracking -= self.increments.get("tracking", 0.25)
                 else:
                     for k, v in variationLimits.items():
                         if self.variations[k] > variationLimits[k]:
-                            self.variations[k] -= 1
+                            self.variations[k] -= self.increments.get(k, 1)
                             break
                 self.tries += 1
                 current_width = self.width()
@@ -344,7 +351,7 @@ class StyledString():
             return
         
         if current_width > width:
-            print("DOES NOT FIT")
+            print("DOES NOT FIT", self.tries, self.text)
     
     def place(self, rect, align, variationLimits=dict()):
         self.rect = rect
@@ -421,7 +428,7 @@ class StyledString():
             g = self.asGlyph(removeOverlap=removeOverlap)
             bp = db.BezierPath()
             g.draw(bp)
-            drawPath(bp)
+            db.drawPath(bp)
         except ImportError:
             print("Could not import DrawBot")
     
@@ -533,7 +540,7 @@ if __name__ == "__main__":
                 strokeWidth(0.5)
                 #bp.removeOverlap()
                 drawPath(bp)
-        if True: # also draw a coretext string?
+        if False: # also draw a coretext string?
             fill(1, 0.8, 1, 0.7)
             #stroke(1, 0, 0.5, 0.5)
             #stroke(1)
@@ -567,7 +574,7 @@ if __name__ == "__main__":
     if False:
         test_styled_fitting()
     
-    if False:
+    if True:
         t = "ٱلْـحَـمْـدُ للهِ‎"
         #t = "الحمراء"
         #t = "رَقَمِيّ"
@@ -580,7 +587,7 @@ if __name__ == "__main__":
         f = f"{fp}/Beastly-72Point.otf"
         #f = f"{fp}/SourceSerifPro-Black.ttf"
         f = f"{fp}/framboisier-bolditalic.ttf"
-        #test_styled_string(t, f, dict())
+        test_styled_string(t, f, dict())
     
         t = "P"
         f = f"{fp}/ObviouslyVariable.ttf"
@@ -595,7 +602,7 @@ if __name__ == "__main__":
         #f = "~/Library/Application Support/Adobe/CoreSync/plugins/livetype/.r/.35716.otf"
         #test_styled_string(t, f)
     
-    if True:
+    if False:
         newPage(1000, 1000)
         g = RGlyph()
         gp = g.getPen()
@@ -617,7 +624,14 @@ if __name__ == "__main__":
         stroke(None)
         ss.drawBotDraw()
     
-    if True:
+    if False:
+        import cProfile
+        if False:
+            p = cProfile.Profile()
+            p.enable()
+        else:
+            p = None
+        
         newPage(1000, 1000)
         def grid(r, color=None):
             with savedState():
@@ -631,9 +645,10 @@ if __name__ == "__main__":
         grid(Rect.page(), color=(1, 0, 0.5, 0.35))
         ss = StyledString("COMPRESSION".upper(),
             fontFile="~/Library/Fonts/ObviouslyVariable.ttf",
-            fontSize=273,
+            fontSize=73,
             tracking=0,
             features=dict(ss01=False),
+            increments=dict(wdth=1),
             variations=dict(wdth=1,wght=1,scale=True))
         
         r = Rect.page().take(900, "centerx").take(200, "centery")
@@ -644,10 +659,14 @@ if __name__ == "__main__":
         strokeWidth(1)
         fill(0, 0.5, 1, 0.95)
         ss.place(r.inset(0, 0), align="C", variationLimits=dict(wdth=151))
-        ss.drawBotDraw()
+        ss.drawBotDraw(removeOverlap=False)
         
         if False:
             bp = BezierPath()
             bp.text(ss.formattedString(), (0, 0))
             bp.removeOverlap()
             drawPath(bp)
+        
+        if p:
+            p.disable()
+            p.print_stats(sort='time')
