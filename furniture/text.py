@@ -359,10 +359,6 @@ class StyledString():
                 t = t.rotate(math.radians(tangent-90))
                 t = t.translate(-frame.frame.w*0.5/self.scale())
             tp = TransformPen(out_pen, (t[0], t[1], t[2], t[3], t[4], t[5]))
-            
-            #tp_rotate = TransformPen(out_pen, (0, 1, -1, 0, 0, 0))
-            #tp_scale = TransformPen(tp_rotate, (s, 0, 0, s, 0, 0))
-            #tp_transform = TransformPen(tp_scale, (1, 0, 0, 1, frame.frame.x/self.scale(), frame.frame.y/self.scale()))
             if useTTFont:
                 fr.drawTTOutlineToPen(tp_transform)
             else:
