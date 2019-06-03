@@ -6,6 +6,7 @@ from collections import OrderedDict
 from freetype.raw import *
 from booleanOperations.booleanGlyph import BooleanGlyph
 from fontParts.fontshell import RGlyph
+from fontTools.misc.transform import Transform
 from fontTools.pens.transformPen import TransformPen
 from fontTools.pens.recordingPen import RecordingPen, replayRecording
 from fontTools.misc.bezierTools import calcCubicArcLength, splitCubicAtT
@@ -206,6 +207,7 @@ class StyledString():
         self.fontSize = fontSize
         self.tracking = tracking
         self.features = {**dict(kern=True, liga=True), **features}
+        self.path = None
         
         self.axes = OrderedDict()
         self.variations = dict()
@@ -245,6 +247,7 @@ class StyledString():
     
     def trackFrames(self, frames):
         t = self.tracking*1/self.scale()
+        t = self.tracking
         x_off = 0
         has_kashida = False
         try:
@@ -283,9 +286,26 @@ class StyledString():
                     pass
         return frames
     
+    def adjustFramesForPath(self, frames):
+        self.tangents = []
+        self.limit = len(frames)
+        if self.path:
+            for idx, f in enumerate(frames):
+                ow = f.frame.x+f.frame.w/2
+                if ow > self.cutter.length:
+                    self.limit = min(idx, self.limit)
+                else:
+                    p, t = self.cutter.subsegmentPoint(end=ow)
+                    f.frame.x = p[0]
+                    f.frame.y = f.frame.y + p[1]
+                    self.tangents.append(t)
+        return frames[0:self.limit]
+    
     def getGlyphFrames(self):
         frames = self.harfbuzz.setText(axes=self.variations, features=self.features, txt=self.text)
-        return self.trackFrames(frames)
+        for f in frames:
+            f.frame = f.frame.scale(self.scale())
+        return self.adjustFramesForPath(self.trackFrames(frames))
     
     def width(self): # size?
         return self.getGlyphFrames()[-1].frame.point("SE").x * self.scale()
@@ -314,6 +334,10 @@ class StyledString():
         else:
             return
     
+    def addPath(self, path):
+        self.path = path
+        self.cutter = CurveCutter(path)
+    
     def formattedString(self):
         feas = dict(self.features)
         del feas["kern"]
@@ -324,15 +348,25 @@ class StyledString():
         fr.setVariations(self.variations)
         # self.harfbuzz.setFeatures ???
         self._frames = self.getGlyphFrames()
-        for frame in self._frames:
+        for idx, frame in enumerate(self._frames):
             fr.setGlyph(frame.gid)
             s = self.scale()
-            tp_scale = TransformPen(out_pen, (s, 0, 0, s, 0, 0))
-            tp_transform = TransformPen(tp_scale, (1, 0, 0, 1, frame.frame.x, frame.frame.y))
+            t = Transform()
+            t = t.scale(s)
+            t = t.translate(frame.frame.x/self.scale(), frame.frame.y/self.scale())
+            if self.path:
+                tangent = self.tangents[idx]
+                t = t.rotate(math.radians(tangent-90))
+                t = t.translate(-frame.frame.w*0.5/self.scale())
+            tp = TransformPen(out_pen, (t[0], t[1], t[2], t[3], t[4], t[5]))
+            
+            #tp_rotate = TransformPen(out_pen, (0, 1, -1, 0, 0, 0))
+            #tp_scale = TransformPen(tp_rotate, (s, 0, 0, s, 0, 0))
+            #tp_transform = TransformPen(tp_scale, (1, 0, 0, 1, frame.frame.x/self.scale(), frame.frame.y/self.scale()))
             if useTTFont:
                 fr.drawTTOutlineToPen(tp_transform)
             else:
-                fr.drawOutlineToPen(tp_transform, raiseCubics=True)
+                fr.drawOutlineToPen(tp, raiseCubics=True)
     
     def asGlyph(self, removeOverlap=True):
         bg = BooleanGlyph()
@@ -342,26 +376,21 @@ class StyledString():
         else:
             return bg
     
+    def drawBotDraw(self, removeOverlap=True):
+        try:
+            import drawBot as db
+            g = self.asGlyph(removeOverlap=removeOverlap)
+            bp = db.BezierPath()
+            g.draw(bp)
+            drawPath(bp)
+        except ImportError:
+            print("Could not import DrawBot")
     
 
 if __name__ == "__main__":
     import os
     import time
     from defcon import Glyph
-    
-    def normalizeBezier(bp_or_g):
-        bp = bp_or_g
-        bp = BezierPath()
-        try:
-            bp_or_g.drawToPen(bp)
-        except:
-            bp_or_g.draw(bp)
-        return bp
-
-    def drawBezier(bp_or_g):
-        bp = normalizeBezier(bp_or_g)
-        drawPath(bp)
-        return bp
     
     fp = os.path.expanduser("~/Library/Fonts")
     faces = [
@@ -440,13 +469,14 @@ if __name__ == "__main__":
         stroke(0, 1, 0.5, 0.5)
         strokeWidth(10)
         fill(1)
-        drawBezier(ss.asGlyph())
+        ss.drawBotDraw()
+        #ss.drawBezier()
         with savedState():
             for f in ss._frames:
                 fill(None)
                 strokeWidth(1)
                 stroke(1, 0.5, 0, 0.5)
-                rect(*f.frame.scale(ss.scale()).inset(10, 0))
+                rect(*f.frame.inset(0, 0))
         if False:
             bp = BezierPath()
             ss.drawToPen(bp, useTTFont=True)
@@ -454,7 +484,7 @@ if __name__ == "__main__":
             stroke(0, 0.5, 1, 0.5)
             strokeWidth(4)
             #bp.removeOverlap()
-            drawBezier(bp)
+            drawPath(bp)
         if True: # also draw a coretext string?
             fill(None)
             stroke(1, 0, 0.5)
@@ -467,14 +497,14 @@ if __name__ == "__main__":
     if False:
         test_styled_fitting()
     
-    if False:
+    if True:
         t = "ٱلْـحَـمْـدُ للهِ‎"
         #t = "الحمراء"
         #t = "رَقَمِيّ"
         #t = "ن"
         f = "~/Type/fonts/fonts/BrandoArabic-Black.otf"
         #f = "~/Type/fonts/fonts/29LTAzal-Display.ttf"
-        test_styled_string(t, f)
+        #test_styled_string(t, f)
     
         t = "Beastly"
         f = f"{fp}/Beastly-72Point.otf"
@@ -485,15 +515,25 @@ if __name__ == "__main__":
         #test_styled_string(t, f)
     
     if True:
+        newPage(1000, 1000)
         g = RGlyph()
         gp = g.getPen()
         gp.moveTo((100, 100))
-        fill(None)
-        stroke(1, 0, 0.5)
         gp.curveTo((540, 250), (430, 750), (900, 900))
         gp.endPath()
-        cc = CurveCutter(g)
-        p, t = cc.subsegmentPoint(end=500)
-        rect(p[0], p[1], 10, 10)
-        drawBezier(g)
-        
+        bp = BezierPath()
+        g.draw(bp)
+        fill(None)
+        stroke(1, 0, 0.5, 0.1)
+        strokeWidth(10)
+        drawPath(bp)
+        ss = StyledString("hello world, what’s happening?",
+            fontFile="~/Library/Fonts/NikolaiV0.2-BoldCondensed.otf",
+            fontSize=100,
+            features=dict(palt=True),
+            variations=dict(wdth=0.43, wght=0.1),
+            tracking=14)
+        ss.addPath(g)
+        fill(0, 0.5, 1)
+        stroke(None)
+        ss.drawBotDraw()
