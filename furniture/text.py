@@ -378,7 +378,7 @@ if __name__ == "__main__":
     if True:
         t = "ٱلْـحَـمْـدُ للهِ‎"
         t = "الحمراء"
-        #t = "رَقَمِيّ"
+        t = "رَقَمِيّ"
         #t = "ن"
         f = "~/Type/fonts/fonts/BrandoArabic-Black.otf"
         #f = "~/Type/fonts/fonts/29LTAzal-Display.ttf"
@@ -386,8 +386,7 @@ if __name__ == "__main__":
     
         t = "Beastly"
         f = f"{fp}/Beastly-72Point.otf"
-    
-        test_styled_string(t, f)
+        #test_styled_string(t, f)
     
         #t = "フィルター"
         #f = "~/Library/Application Support/Adobe/CoreSync/plugins/livetype/.r/.35716.otf"
