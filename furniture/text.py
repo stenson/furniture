@@ -269,7 +269,21 @@ if __name__ == "__main__":
     import os
     import time
     from defcon import Glyph
-    from grafutils.beziers.utils import drawBezier, drawBezierSkeleton
+    
+    def normalizeBezier(bp_or_g):
+        bp = bp_or_g
+        bp = BezierPath()
+        try:
+            bp_or_g.drawToPen(bp)
+        except:
+            bp_or_g.draw(bp)
+        return bp
+
+
+    def drawBezier(bp_or_g):
+        bp = normalizeBezier(bp_or_g)
+        drawPath(bp)
+        return bp
     
     fp = os.path.expanduser("~/Library/Fonts")
     faces = [
