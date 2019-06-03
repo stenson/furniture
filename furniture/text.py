@@ -16,8 +16,6 @@ from furniture.geometry import Rect
 import uharfbuzz as hb
 import unicodedata
 
-from grafutils.beziers.utils import drawBezierSkeleton
-
 
 class HarfbuzzFrame():
     def __init__(self, info, position, frame):
@@ -433,6 +431,8 @@ if __name__ == "__main__":
     import time
     from defcon import Glyph
     
+    from grafutils.beziers.utils import drawBezierSkeleton
+    
     fp = os.path.expanduser("~/Library/Fonts")
     faces = [
         [f"{fp}/ObviouslyVariable.ttf", dict(wdth=250, wght=200)],
@@ -512,8 +512,8 @@ if __name__ == "__main__":
         #strokeWidth(1)
         #stroke(0)
         fill(0)
-        g = ss.asGlyph(removeOverlap=False)
-        drawBezierSkeleton(g, labels=True, handles=True, f=False)
+        g = ss.asGlyph(removeOverlap=True)
+        drawBezierSkeleton(g, labels=False, handles=True, f=False, r=1)
         rp1 = RecordingPen()
         g.draw(rp1)
         #ss.drawBotDraw()
@@ -542,14 +542,28 @@ if __name__ == "__main__":
             bp.text(ss.formattedString(), (0, 0))
             bp.removeOverlap()
             #drawPath(bp)
-            drawBezierSkeleton(bp, labels=True, handles=True, randomize=True, f=False)
+            drawBezierSkeleton(bp, labels=False, handles=True, randomize=True, f=False, r=1)
             rp2 = RecordingPen()
             bp.drawToPen(rp2)
             
-            for i, (t1, pts1) in enumerate(rp1.value):
-                t2, pts2 = rp2.value[i]
-                if t1 != t2:
-                    print(t1, t2, pts1, pts2)
+            if False:
+                try:
+                    for i, (t1, pts1) in enumerate(rp1.value):
+                        t2, pts2 = rp2.value[i]
+                        if t1 != t2:
+                            print("MOVE <<<<<<<<<<<<")
+                            print("ft", t1)
+                            print("ct", t2)
+                            print(pts1)
+                            print(pts2)
+                        elif pts1 != pts2:
+                            print("PTS <<<<<<<<<<<<")
+                            print("ft", t1)
+                            print("ct", t2)
+                            print(pts1)
+                            print(pts2)
+                except:
+                    pass
     if False:
         test_styled_fitting()
     
@@ -562,23 +576,26 @@ if __name__ == "__main__":
         #f = "~/Type/fonts/fonts/29LTAzal-Display.ttf"
         #test_styled_string(t, f, dict())
     
-        t = "l"
+        t = "Beastly"
         f = f"{fp}/Beastly-72Point.otf"
-        f = f"{fp}/SourceSerifPro-Black.ttf"
-        test_styled_string(t, f, dict())
+        #f = f"{fp}/SourceSerifPro-Black.ttf"
+        f = f"{fp}/framboisier-bolditalic.ttf"
+        #test_styled_string(t, f, dict())
     
-        t = "R"
+        t = "P"
         f = f"{fp}/ObviouslyVariable.ttf"
-        v = dict(wdth=200, wght=500)
+        v = dict(wdth=151, wght=151)
         #f = f"{fp}/RoslindaleVariableItalicBeta-VF.ttf"
-        #v = dict(ital=0.4, slnt=-8)
-        #test_styled_string(t, f, v)
+        #v = dict(ital=0.6, slnt=-8)
+        #f = f"{fp}/BildVariableV2-VF.ttf"
+        #v = dict(wdth=80)
+        test_styled_string(t, f, v)
     
         #t = "フィルター"
         #f = "~/Library/Application Support/Adobe/CoreSync/plugins/livetype/.r/.35716.otf"
         #test_styled_string(t, f)
     
-    if False:
+    if True:
         newPage(1000, 1000)
         g = RGlyph()
         gp = g.getPen()
@@ -594,9 +611,7 @@ if __name__ == "__main__":
         ss = StyledString("hello world, what’s happening?",
             fontFile="~/Library/Fonts/NikolaiV0.2-BoldCondensed.otf",
             fontSize=100,
-            features=dict(palt=True),
-            variations=dict(wdth=0.43, wght=0.1),
-            tracking=14)
+            tracking=7)
         ss.addPath(g)
         fill(0, 0.5, 1)
         stroke(None)
@@ -621,13 +636,13 @@ if __name__ == "__main__":
             features=dict(ss01=False),
             variations=dict(wdth=1,wght=1,scale=True))
         
-        r = Rect.page().take(800, "centerx").take(200, "centery")
+        r = Rect.page().take(900, "centerx").take(200, "centery")
         stroke(0, 0.5)
         strokeWidth(10)
         fill(None)
         rect(*r)
         strokeWidth(1)
-        fill(0, 0.5, 1, 0.75)
+        fill(0, 0.5, 1, 0.95)
         ss.place(r.inset(0, 0), align="C", variationLimits=dict(wdth=151))
         ss.drawBotDraw()
         
