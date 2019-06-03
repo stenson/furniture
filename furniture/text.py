@@ -178,6 +178,9 @@ class StyledString():
                         v)
         return variations
     
+    def vowelMark(self, u):
+        return "KASRA" in u or "FATHA" in u or "DAMMA" in u or "TATWEEL" in u or "SUKUN" in u
+    
     def trackFrames(self, frames):
         t = self.tracking*1/self.scale()
         x_off = 0
@@ -187,23 +190,36 @@ class StyledString():
             has_kashida = True
         except KeyError:
             has_kashida = False
-        # does font have kashida? # or just check direction?
         if not has_kashida:
             for idx, f in enumerate(frames):
                 f.frame = f.frame.offset(x_off, 0)
                 x_off += t
         else:
-            for idx, frame in enumerate(frames):
+            glyph_names = []
+            for frame in frames:
                 glyph_name = self.ttfont.getGlyphName(frame.gid)
                 code = glyph_name.replace("uni", "")
-                u = unicodedata.name(chr(int(code, 16)))
-                if "MEDIAL" in u or "INITIAL" in u:
-                    print(u)
-                    f = 1.6
-                    if "MEEM" in u or "LAM" in u:
-                        f = 2.7
-                    x_off += t*f
+                try:
+                    glyph_names.append(unicodedata.name(chr(int(code, 16))))
+                except:
+                    glyph_names.append(code)
+            for idx, frame in enumerate(frames):
                 frame.frame = frame.frame.offset(x_off, 0)
+                try:
+                    u = glyph_names[idx]
+                    if self.vowelMark(u):
+                        continue
+                    u_1 = glyph_names[idx+1]
+                    if self.vowelMark(u_1):
+                        u_1 = glyph_names[idx+2]
+                    print(u_1)
+                    if "MEDIAL" in u_1 or "INITIAL" in u_1:
+                        f = 1.6
+                        if "MEEM" in u_1 or "LAM" in u_1:
+                            f = 2.7
+                        x_off += t*f
+                except IndexError:
+                    pass
         return frames
     
     def getGlyphFrames(self):
@@ -366,8 +382,8 @@ if __name__ == "__main__":
         with savedState():
             for f in ss._frames:
                 fill(None)
-                strokeWidth(4)
-                stroke(1, 0.5, 0)
+                strokeWidth(1)
+                stroke(1, 0.5, 0, 0.5)
                 rect(*f.frame.scale(ss.scale()).inset(10, 0))
         if False:
             bp = BezierPath()
@@ -391,8 +407,8 @@ if __name__ == "__main__":
     
     if True:
         t = "ٱلْـحَـمْـدُ للهِ‎"
-        t = "الحمراء"
-        t = "رَقَمِيّ"
+        #t = "الحمراء"
+        #t = "رَقَمِيّ"
         #t = "ن"
         f = "~/Type/fonts/fonts/BrandoArabic-Black.otf"
         #f = "~/Type/fonts/fonts/29LTAzal-Display.ttf"
