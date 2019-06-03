@@ -9,11 +9,14 @@ from fontParts.fontshell import RGlyph
 from fontTools.misc.transform import Transform
 from fontTools.pens.transformPen import TransformPen
 from fontTools.pens.recordingPen import RecordingPen, replayRecording
+from fontTools.pens.boundsPen import ControlBoundsPen, BoundsPen
 from fontTools.misc.bezierTools import calcCubicArcLength, splitCubicAtT
 from fontTools.ttLib import TTFont
 from furniture.geometry import Rect
 import uharfbuzz as hb
 import unicodedata
+
+from grafutils.beziers.utils import drawBezierSkeleton
 
 
 class HarfbuzzFrame():
@@ -76,14 +79,14 @@ class FreetypeReader():
         if len(self.axesOrder) > 0:
             coords = []
             for name in self.axesOrder:
-                coord = FT_Fixed(axes[name] << 16)
+                coord = FT_Fixed(int(axes[name]) << 16)
                 coords.append(coord)
             ft_coords = (FT_Fixed * len(coords))(*coords)
             freetype.FT_Set_Var_Design_Coordinates(self.font._FT_Face, len(ft_coords), ft_coords)
     
     def setGlyph(self, glyph_id):
         self.glyph_id = glyph_id
-        flags = freetype.FT_LOAD_DEFAULT | freetype.FT_LOAD_NO_BITMAP | freetype.FT_LOAD_NO_SCALE | freetype.FT_LOAD_NO_HINTING
+        flags = freetype.FT_LOAD_DEFAULT | freetype.FT_LOAD_NO_SCALE | freetype.FT_LOAD_IGNORE_TRANSFORM
         if isinstance(glyph_id, int):
             self.font.load_glyph(glyph_id, flags)
         else:
@@ -106,7 +109,6 @@ class FreetypeReader():
         except TypeError:
             print("could not draw TT outline")
             
-    
     def moveTo(a, pen):
         if len(pen.value) > 0:
             pen.closePath()
@@ -130,7 +132,7 @@ class FreetypeReader():
         pen.curveTo((a.x, a.y), (b.x, b.y), (c.x, c.y))
 
 
-class CurveCutter():    
+class CurveCutter():
     def __init__(self, g, inc=0.0015):
         self.pen = RecordingPen()
         g.draw(self.pen)
@@ -208,38 +210,47 @@ class StyledString():
         self.tracking = tracking
         self.features = {**dict(kern=True, liga=True), **features}
         self.path = None
+        self.offset = (0, 0)
+        self.rect = None
         
         self.axes = OrderedDict()
         self.variations = dict()
         try:
-            for axis in self.ttfont['fvar'].axes:
+            fvar = self.ttfont['fvar']
+        except KeyError:
+            fvar = None
+        if fvar:
+            for axis in fvar.axes:
                 self.axes[axis.axisTag] = axis
                 self.variations[axis.axisTag] = axis.defaultValue
             for k, v in self.normalizeVariations(variations).items():
                 self.variations[k] = v
-        except:
-            pass
     
     def normalizeVariations(self, variations):
+        if variations.get("scale") != None:
+            scale = variations["scale"]
+            del variations["scale"]
+        else:
+            scale = False
         for k, v in variations.items():
             try:
                 axis = self.axes[k]
             except KeyError:
                 raise Exception("Invalid axis", self.fontFile, k)
             if v == "min":
-                variations[k] = int(axis.minValue)
+                variations[k] = axis.minValue
             elif v == "max":
-                variations[k] = int(axis.maxValue)
+                variations[k] = axis.maxValue
             elif v == "default":
-                variations[k] = int(axis.defaultValue)
-            elif isinstance(v, float) and v <= 1.0:
+                variations[k] = axis.defaultValue
+            elif scale and v <= 1.0:
                 variations[k] = int((axis.maxValue-axis.minValue)*v + axis.minValue)
             else:
                 if v < axis.minValue or v > axis.maxValue:
-                    raise Exception("Invalid font variation",
-                        self.fontFile,
-                        self.axes[k].axisTag,
-                        v)
+                    variations[k] = max(axis.minValue, min(axis.maxValue, v))
+                    print("Invalid font variation", self.fontFile, self.axes[k].axisTag, v)
+                else:
+                    variations[k] = v
         return variations
     
     def vowelMark(self, u):
@@ -333,6 +344,17 @@ class StyledString():
             pass
         else:
             return
+        
+        if current_width > width:
+            print("DOES NOT FIT")
+    
+    def place(self, rect, align, variationLimits=dict()):
+        self.rect = rect
+        self.fit(rect.w, variationLimits=variationLimits)
+        ch = self.ttfont["OS/2"].sCapHeight * self.scale()
+        x = rect.w/2 - self.width()/2
+        self.offset = (0, 0)
+        #self.offset = rect.offset(0, rect.h/2 - ch/2).xy()
     
     def addPath(self, path):
         self.path = path
@@ -358,9 +380,11 @@ class StyledString():
                 tangent = self.tangents[idx]
                 t = t.rotate(math.radians(tangent-90))
                 t = t.translate(-frame.frame.w*0.5/self.scale())
+            #print(self.offset)
+            t = t.translate(self.offset[0]/self.scale(), self.offset[1]/self.scale())
             tp = TransformPen(out_pen, (t[0], t[1], t[2], t[3], t[4], t[5]))
             if useTTFont:
-                fr.drawTTOutlineToPen(tp_transform)
+                fr.drawTTOutlineToPen(tp)
             else:
                 fr.drawOutlineToPen(tp, raiseCubics=True)
     
@@ -368,7 +392,28 @@ class StyledString():
         bg = BooleanGlyph()
         self.drawToPen(bg.getPen())
         if removeOverlap:
-            return bg.removeOverlap()
+            bg = bg.removeOverlap()
+        
+        if self.rect:
+            cbp = ControlBoundsPen(None)
+            bg.draw(cbp)
+            mnx, mny, mxx, mxy = cbp.bounds
+            ch = self.ttfont["OS/2"].sCapHeight * self.scale()
+            xoff = -mnx + self.rect.x + self.rect.w/2 - (mxx-mnx)/2
+            yoff = self.rect.y + self.rect.h/2 - ch/2
+            if False:
+                with savedState():
+                    fill(1, 0, 0.5, 0.5)
+                    bp = BezierPath()
+                    bp.rect(mnx, mny, mxx-mnx, mxy-mny)
+                    bp.translate(xoff, yoff)
+                    drawPath(bp)
+            diff = self.rect.w - (mxx-mnx)
+            g = RGlyph()
+            tp = TransformPen(g.getPen(), (1, 0, 0, 1, xoff, yoff))
+            bg.draw(tp)
+            self._final_offset = (xoff, yoff)
+            return g
         else:
             return bg
     
@@ -419,7 +464,7 @@ if __name__ == "__main__":
         ss = StyledString("COMPRESSION".upper(),
             fontFile=f"{fp}/ObviouslyVariable.ttf",
             fontSize=50,
-            variations=dict(wdth=1.0, wght=0.9),
+            variations=dict(wdth=1, wght=0, scale=True),
             features=dict(ss01=False),
             tracking=30)
         count = 22
@@ -444,9 +489,9 @@ if __name__ == "__main__":
                 bp.translate(4, -74)
                 drawPath(bp)
     
-    def test_styled_string(t, f):
-        newPage(1500, 400)
-        fill(0.95)
+    def test_styled_string(t, f, v):
+        newPage(1500, 1000)
+        fill(1)
         rect(*Rect.page())
         #translate(200, 200)
         if False:
@@ -454,42 +499,58 @@ if __name__ == "__main__":
                 scale(4)
                 translate(-10, -7)
                 image("~/Desktop/palt.png", (0, -300))
-        translate(50, 150)
+        #translate(50, 150)
         ss = StyledString(t,
             fontFile=f,
-            fontSize=200,
+            fontSize=1000,
             features=dict(palt=True),
+            variations=v,
             tracking=0)
         
-        stroke(0, 1, 0.5, 0.5)
-        strokeWidth(10)
-        fill(1)
-        ss.drawBotDraw()
-        #ss.drawBezier()
-        with savedState():
-            for f in ss._frames:
-                fill(None)
-                strokeWidth(1)
-                stroke(1, 0.5, 0, 0.5)
-                rect(*f.frame.inset(0, 0))
+        #fill(1)
+        #stroke(0, 1, 0.5)
+        #strokeWidth(1)
+        #stroke(0)
+        fill(0)
+        g = ss.asGlyph(removeOverlap=False)
+        drawBezierSkeleton(g, labels=True, handles=True, f=False)
+        rp1 = RecordingPen()
+        g.draw(rp1)
+        #ss.drawBotDraw()
         if False:
-            bp = BezierPath()
-            ss.drawToPen(bp, useTTFont=True)
-            fill(None)
-            stroke(0, 0.5, 1, 0.5)
-            strokeWidth(4)
-            #bp.removeOverlap()
-            drawPath(bp)
+            with savedState():
+                for f in ss._frames:
+                    fill(None)
+                    strokeWidth(1)
+                    stroke(1, 0.5, 0, 0.5)
+                    rect(*f.frame.inset(0, 0))
+        if False:
+            with savedState():
+                bp = BezierPath()
+                ss.drawToPen(bp, useTTFont=True)
+                fill(None)
+                stroke(0, 0.5, 1)
+                strokeWidth(0.5)
+                #bp.removeOverlap()
+                drawPath(bp)
         if True: # also draw a coretext string?
-            fill(None)
-            stroke(1, 0, 0.5)
-            strokeWidth(1)
+            fill(1, 0.8, 1, 0.7)
+            #stroke(1, 0, 0.5, 0.5)
+            #stroke(1)
+            #strokeWidth(1.5)
             bp = BezierPath()
             bp.text(ss.formattedString(), (0, 0))
-            #bp.removeOverlap()
-            drawPath(bp)
-    
-    if True:
+            bp.removeOverlap()
+            #drawPath(bp)
+            drawBezierSkeleton(bp, labels=True, handles=True, randomize=True, f=False)
+            rp2 = RecordingPen()
+            bp.drawToPen(rp2)
+            
+            for i, (t1, pts1) in enumerate(rp1.value):
+                t2, pts2 = rp2.value[i]
+                if t1 != t2:
+                    print(t1, t2, pts1, pts2)
+    if False:
         test_styled_fitting()
     
     if False:
@@ -499,17 +560,25 @@ if __name__ == "__main__":
         #t = "ن"
         f = "~/Type/fonts/fonts/BrandoArabic-Black.otf"
         #f = "~/Type/fonts/fonts/29LTAzal-Display.ttf"
-        test_styled_string(t, f)
+        #test_styled_string(t, f, dict())
     
-        t = "Beastly"
+        t = "l"
         f = f"{fp}/Beastly-72Point.otf"
-        test_styled_string(t, f)
+        f = f"{fp}/SourceSerifPro-Black.ttf"
+        test_styled_string(t, f, dict())
+    
+        t = "R"
+        f = f"{fp}/ObviouslyVariable.ttf"
+        v = dict(wdth=200, wght=500)
+        #f = f"{fp}/RoslindaleVariableItalicBeta-VF.ttf"
+        #v = dict(ital=0.4, slnt=-8)
+        #test_styled_string(t, f, v)
     
         #t = "フィルター"
         #f = "~/Library/Application Support/Adobe/CoreSync/plugins/livetype/.r/.35716.otf"
         #test_styled_string(t, f)
     
-    if True:
+    if False:
         newPage(1000, 1000)
         g = RGlyph()
         gp = g.getPen()
@@ -532,3 +601,38 @@ if __name__ == "__main__":
         fill(0, 0.5, 1)
         stroke(None)
         ss.drawBotDraw()
+    
+    if True:
+        newPage(1000, 1000)
+        def grid(r, color=None):
+            with savedState():
+                if color:
+                    fill(*color)
+                for i, column in enumerate(r.pieces(40, "minx")):
+                    for j, box in enumerate(column.pieces(40, "maxy")):
+                        if (i % 2 == 0 and j % 2 == 1) or (i % 2 == 1 and j % 2 == 0):
+                            rect(*box)
+        
+        grid(Rect.page(), color=(1, 0, 0.5, 0.35))
+        ss = StyledString("COMPRESSION".upper(),
+            fontFile="~/Library/Fonts/ObviouslyVariable.ttf",
+            fontSize=273,
+            tracking=0,
+            features=dict(ss01=False),
+            variations=dict(wdth=1,wght=1,scale=True))
+        
+        r = Rect.page().take(800, "centerx").take(200, "centery")
+        stroke(0, 0.5)
+        strokeWidth(10)
+        fill(None)
+        rect(*r)
+        strokeWidth(1)
+        fill(0, 0.5, 1, 0.75)
+        ss.place(r.inset(0, 0), align="C", variationLimits=dict(wdth=151))
+        ss.drawBotDraw()
+        
+        if False:
+            bp = BezierPath()
+            bp.text(ss.formattedString(), (0, 0))
+            bp.removeOverlap()
+            drawPath(bp)
