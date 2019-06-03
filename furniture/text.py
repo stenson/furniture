@@ -308,7 +308,7 @@ class StyledString():
         return self.adjustFramesForPath(self.trackFrames(frames))
     
     def width(self): # size?
-        return self.getGlyphFrames()[-1].frame.point("SE").x * self.scale()
+        return self.getGlyphFrames()[-1].frame.point("SE").x
     
     def scale(self):
         return self.fontSize / 1000
@@ -420,7 +420,6 @@ if __name__ == "__main__":
     def test_styled_fitting():
         fill(0)
         rect(*Rect.page())
-        
         ss = StyledString("COMPRESSION".upper(),
             fontFile=f"{fp}/ObviouslyVariable.ttf",
             fontSize=50,
@@ -440,7 +439,7 @@ if __name__ == "__main__":
                     "width", ss.width(), ss.tracking, ss.tries)
             fill(random(), 0.5, 1, 1)
             fill(1)
-            drawBezier(ss.asGlyph(removeOverlap=False))
+            ss.drawBotDraw(removeOverlap=False)
             translate(30, ss.fontSize-5)
             if False: # also draw a coretext string?
                 fill(random(), 0.5, 1, 0.15)
@@ -494,17 +493,17 @@ if __name__ == "__main__":
             #bp.removeOverlap()
             drawPath(bp)
     
-    if False:
+    if True:
         test_styled_fitting()
     
-    if True:
+    if False:
         t = "ٱلْـحَـمْـدُ للهِ‎"
         #t = "الحمراء"
         #t = "رَقَمِيّ"
         #t = "ن"
         f = "~/Type/fonts/fonts/BrandoArabic-Black.otf"
         #f = "~/Type/fonts/fonts/29LTAzal-Display.ttf"
-        #test_styled_string(t, f)
+        test_styled_string(t, f)
     
         t = "Beastly"
         f = f"{fp}/Beastly-72Point.otf"
