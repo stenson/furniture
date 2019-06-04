@@ -680,6 +680,18 @@ if __name__ == "__main__":
             p.disable()
             p.print_stats(sort='time')
     
+    def test_cff_var():
+        newPage()
+        ss = StyledString("Hello, world",
+            #fontFile="~/Type/fonts/fonts/AdobeBlack2VF.otf",
+            fontFile="~/Type/fonts/fonts/AdobeVFPrototype.otf",
+            fontSize=150,
+            variations=dict(wght=0, scale=True),
+            )
+        ss.place(Rect.page())
+        fill(0)
+        ss.drawBotDraw()
+    
     if False:
         t = "ٱلْـحَـمْـدُ للهِ‎"
         #t = "الحمراء"
@@ -708,21 +720,8 @@ if __name__ == "__main__":
         #f = "~/Library/Application Support/Adobe/CoreSync/plugins/livetype/.r/.35716.otf"
         #test_styled_string(t, f)
     
-    if False:
+    if True:
         test_styled_fitting()
         test_curve_fitting()
         test_box_fitting()
-    
-    def test_cff_var():
-        newPage()
-        ss = StyledString("Hello, world",
-            #fontFile="~/Type/fonts/fonts/AdobeBlack2VF.otf",
-            fontFile="~/Type/fonts/fonts/AdobeVFPrototype.otf",
-            fontSize=150,
-            variations=dict(wght=0, scale=True),
-            )
-        ss.place(Rect.page())
-        fill(0)
-        ss.drawBotDraw()
-    
-    test_cff_var()
+        test_cff_var()
