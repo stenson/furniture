@@ -266,7 +266,11 @@ class StyledString():
             else:
                 if v < axis.minValue or v > axis.maxValue:
                     variations[k] = max(axis.minValue, min(axis.maxValue, v))
-                    print("Invalid font variation", self.fontFile, self.axes[k].axisTag, v)
+                    print("----------------------")
+                    print("Invalid Font Variation")
+                    print(self.fontFile, self.axes[k].axisTag, v)
+                    print("> setting", v, "<to>", variations[k])
+                    print("----------------------")
                 else:
                     variations[k] = v
         return variations
@@ -572,7 +576,7 @@ if __name__ == "__main__":
                 strokeWidth(0.5)
                 #bp.removeOverlap()
                 drawPath(bp)
-        if False: # also draw a coretext string?
+        if True: # also draw a coretext string?
             fill(1, 0.8, 1, 0.7)
             #stroke(1, 0, 0.5, 0.5)
             #stroke(1)
@@ -603,38 +607,8 @@ if __name__ == "__main__":
                             print(pts2)
                 except:
                     pass
-    if True:
-        test_styled_fitting()
     
-    if False:
-        t = "ٱلْـحَـمْـدُ للهِ‎"
-        #t = "الحمراء"
-        #t = "رَقَمِيّ"
-        #t = "ن"
-        f = "~/Type/fonts/fonts/BrandoArabic-Black.otf"
-        #f = "~/Type/fonts/fonts/29LTAzal-Display.ttf"
-        test_styled_string(t, f, dict())
-    
-        t = "Beastly"
-        f = f"{fp}/Beastly-72Point.otf"
-        #f = f"{fp}/SourceSerifPro-Black.ttf"
-        f = f"{fp}/framboisier-bolditalic.ttf"
-        test_styled_string(t, f, dict())
-    
-        t = "PROGRAM"
-        f = f"{fp}/ObviouslyVariable.ttf"
-        v = dict(wdth=151, wght=151)
-        #f = f"{fp}/RoslindaleVariableItalicBeta-VF.ttf"
-        #v = dict(ital=0.6, slnt=-8)
-        #f = f"{fp}/BildVariableV2-VF.ttf"
-        #v = dict(wdth=80)
-        test_styled_string(t, f, v)
-    
-        #t = "フィルター"
-        #f = "~/Library/Application Support/Adobe/CoreSync/plugins/livetype/.r/.35716.otf"
-        #test_styled_string(t, f)
-    
-    if True:
+    def test_curve_fitting():
         newPage(1000, 1000)
         g = RGlyph()
         gp = g.getPen()
@@ -656,7 +630,7 @@ if __name__ == "__main__":
         stroke(None)
         ss.drawBotDraw()
     
-    if True:
+    def test_box_fitting():
         import cProfile
         if False:
             p = cProfile.Profile()
@@ -705,3 +679,50 @@ if __name__ == "__main__":
         if p:
             p.disable()
             p.print_stats(sort='time')
+    
+    if False:
+        t = "ٱلْـحَـمْـدُ للهِ‎"
+        #t = "الحمراء"
+        #t = "رَقَمِيّ"
+        #t = "ن"
+        f = "~/Type/fonts/fonts/BrandoArabic-Black.otf"
+        #f = "~/Type/fonts/fonts/29LTAzal-Display.ttf"
+        test_styled_string(t, f, dict())
+    
+        t = "Beastly"
+        f = f"{fp}/Beastly-72Point.otf"
+        #f = f"{fp}/SourceSerifPro-Black.ttf"
+        f = f"{fp}/framboisier-bolditalic.ttf"
+        test_styled_string(t, f, dict())
+    
+        t = "PROGRAM"
+        f = f"{fp}/ObviouslyVariable.ttf"
+        v = dict(wdth=151, wght=151)
+        #f = f"{fp}/RoslindaleVariableItalicBeta-VF.ttf"
+        #v = dict(ital=0.6, slnt=-8)
+        #f = f"{fp}/BildVariableV2-VF.ttf"
+        #v = dict(wdth=80)
+        test_styled_string(t, f, v)
+    
+        #t = "フィルター"
+        #f = "~/Library/Application Support/Adobe/CoreSync/plugins/livetype/.r/.35716.otf"
+        #test_styled_string(t, f)
+    
+    if False:
+        test_styled_fitting()
+        test_curve_fitting()
+        test_box_fitting()
+    
+    def test_cff_var():
+        newPage()
+        ss = StyledString("Hello, world",
+            #fontFile="~/Type/fonts/fonts/AdobeBlack2VF.otf",
+            fontFile="~/Type/fonts/fonts/AdobeVFPrototype.otf",
+            fontSize=150,
+            variations=dict(wght=0, scale=True),
+            )
+        ss.place(Rect.page())
+        fill(0)
+        ss.drawBotDraw()
+    
+    test_cff_var()
