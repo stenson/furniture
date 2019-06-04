@@ -203,8 +203,10 @@ class StyledString():
             fontFile=None,
             fontSize=12,
             tracking=0,
+            trackingLimit=0,
             space=None,
             variations=dict(),
+            variationLimits=dict(),
             increments=dict(),
             features=dict(),
             align="C"):
@@ -214,6 +216,7 @@ class StyledString():
         self.ttfont = TTFont(self.fontFile)
         self.fontSize = fontSize
         self.tracking = tracking
+        self.trackingLimit = trackingLimit
         self.features = {**dict(kern=True, liga=True), **features}
         self.path = None
         self.offset = (0, 0)
@@ -351,13 +354,13 @@ class StyledString():
     def scale(self):
         return self.fontSize / 1000
     
-    def fit(self, width, trackingLimit=0):
+    def fit(self, width):
         _vars = self.variations
         current_width = self.width()
         self.tries = 0
         if current_width > width: # need to shrink
             while self.tries < 1000 and current_width > width:
-                if self.tracking > trackingLimit:
+                if self.tracking > self.trackingLimit:
                     self.tracking -= self.increments.get("tracking", 0.25)
                 else:
                     for k, v in self.variationLimits.items():
@@ -413,6 +416,49 @@ class StyledString():
                 fr.drawTTOutlineToPen(tp)
             else:
                 fr.drawOutlineToPen(tp, raiseCubics=True)
+            
+    def asRecording(self):
+        rp = RecordingPen()
+        self.drawToPen(rp)
+
+        if self.rect:
+            cbp = ControlBoundsPen(None)
+            replayRecording(rp.value, cbp)
+            mnx, mny, mxx, mxy = cbp.bounds
+            ch = self.ttfont["OS/2"].sCapHeight * self.scale()
+            y = self.align[0]
+            x = self.align[1] if len(self.align) > 1 else "C"
+            w = mxx-mnx
+
+            if x == "C":
+                xoff = -mnx + self.rect.x + self.rect.w/2 - w/2
+            elif x == "W":
+                xoff = self.rect.x
+            elif x == "E":
+                xoff = -mnx + self.rect.x + self.rect.w - w
+            
+            if y == "C":
+                yoff = self.rect.y + self.rect.h/2 - ch/2
+            elif y == "N":
+                yoff = self.rect.y + self.rect.h - ch
+            elif y == "S":
+                yoff = self.rect.y
+            if False:
+                with savedState():
+                    fill(1, 0, 0.5, 0.5)
+                    bp = BezierPath()
+                    bp.rect(mnx, mny, mxx-mnx, mxy-mny)
+                    bp.translate(xoff, yoff)
+                    drawPath(bp)
+            diff = self.rect.w - (mxx-mnx)
+            rp2 = RecordingPen()
+            tp = TransformPen(rp2, (1, 0, 0, 1, xoff, yoff))
+            replayRecording(rp.value, tp)
+            self._final_offset = (xoff, yoff)
+            return rp2
+        else:
+            return rp
+
     
     def asGlyph(self, removeOverlap=True):
         bg = BooleanGlyph()
