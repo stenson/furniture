@@ -226,7 +226,7 @@ def add(rect_a, rect_b):
 
 def scale(rect, s, x_edge=Edge.CenterX, y_edge=Edge.CenterY):
     x, y, w, h = rect
-    return [x / s, y / s, w / s, h / s]
+    return [x * s, y * s, w * s, h * s]
 
 
 def edgepoints(rect, edge):
