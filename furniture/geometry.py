@@ -445,6 +445,9 @@ class Rect():
         self.y = y
         self.w = w
         self.h = h
+    
+    def p(self, s):
+        return self.point(s)
 
     def point(self, eh, ev=Edge.MinX):
         ev = txt_to_edge(ev)
