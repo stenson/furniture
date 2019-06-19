@@ -63,7 +63,7 @@ def perc_to_pix(rect, amount, edge):
         return amount
 
 
-def divide(rect, amount, edge):
+def divide(rect, amount, edge, forcePixel=False):
     """
     ## Dividing
     Derived from the behavior of the classic CGRectDivide, which takes a rectangle
@@ -85,7 +85,8 @@ def divide(rect, amount, edge):
     or top-and-bottom in the case of a Y edge
     """
     x, y, w, h = rect
-    amount = perc_to_pix(rect, amount, edge)
+    if not forcePixel:
+        amount = perc_to_pix(rect, amount, edge)
 
     if edge == Edge.MaxY:
         if MINYISMAXY:
@@ -149,7 +150,7 @@ def pieces(rect, amount, edge):
     return subdivide(rect, fit, edge)
 
 
-def take(rect, amount, edge):
+def take(rect, amount, edge, forcePixel=False):
     """
     Like `divide`, but here it just returns the "first" rect from a divide call,
     not all the resulting pieces, i.e. you can "take" 200px from the center of a
@@ -159,10 +160,10 @@ def take(rect, amount, edge):
     `[50, 0, 200, 100]`
     """
     if edge == Edge.CenterX or edge == Edge.CenterY:
-        _, r, _ = divide(rect, amount, edge)
+        _, r, _ = divide(rect, amount, edge, forcePixel=forcePixel)
         return r
     else:
-        r, _ = divide(rect, amount, edge)
+        r, _ = divide(rect, amount, edge, forcePixel=forcePixel)
         return r
 
 
@@ -364,13 +365,13 @@ class Rect():
     def square(self):
         return Rect(centered_square(self.rect()))
 
-    def divide(self, amount, edge):
+    def divide(self, amount, edge, forcePixel=False):
         edge = txt_to_edge(edge)
         if edge == Edge.CenterX or edge == Edge.CenterY:
-            a, b, c = divide(self.rect(), amount, edge)
+            a, b, c = divide(self.rect(), amount, edge, forcePixel=forcePixel)
             return Rect(a), Rect(b), Rect(c)
         else:
-            a, b = divide(self.rect(), amount, edge)
+            a, b = divide(self.rect(), amount, edge, forcePixel=forcePixel)
             return Rect(a), Rect(b)
 
     def subdivide(self, amount, edge):
@@ -391,13 +392,13 @@ class Rect():
         y_edge = txt_to_edge(y_edge)
         return Rect(scale(self.rect(), s, x_edge, y_edge))
 
-    def take(self, amount, edge):
+    def take(self, amount, edge, forcePixel=False):
         edge = txt_to_edge(edge)
-        return Rect(take(self.rect(), amount, edge))
+        return Rect(take(self.rect(), amount, edge, forcePixel=forcePixel))
 
-    def takeOpposite(self, amount, edge):
+    def takeOpposite(self, amount, edge, forcePixel=False):
         edge = txt_to_edge(edge)
-        return self.divide(amount, edge)[1]
+        return self.divide(amount, edge, forcePixel=forcePixel)[1]
 
     def subtract(self, amount, edge):
         edge = txt_to_edge(edge)
